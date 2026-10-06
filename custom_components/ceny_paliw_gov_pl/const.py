@@ -6,7 +6,7 @@ from datetime import timedelta
 
 DOMAIN = "ceny_paliw_gov_pl"
 NAME = "Ceny paliw GOV.PL"
-VERSION = "1.2.1"
+VERSION = "1.3.0"
 AUTHOR = "Q-Tronic"
 
 NEWS_URL = "https://www.gov.pl/web/energia/wiadomosci"
@@ -14,6 +14,7 @@ REPOSITORY_URL = "https://github.com/Q-Tronic/HomeAssistant-Ceny-Paliw-GOV"
 ISSUE_TRACKER_URL = f"{REPOSITORY_URL}/issues"
 
 UPDATE_INTERVAL = timedelta(minutes=30)
+STALE_DATA_AFTER = timedelta(minutes=75)
 REQUEST_TIMEOUT_SECONDS = 20
 USER_AGENT = f"HomeAssistant-{DOMAIN}/{VERSION} (+{REPOSITORY_URL})"
 
@@ -30,7 +31,15 @@ FUEL_NAMES: dict[str, str] = {
 
 STATUS_NOT_PUBLISHED = "Nie opublikowano"
 STATUS_NO_CHANGE = "bez zmian"
+STATUS_PUBLISHED = "Opublikowano"
+STATUS_WAITING = "Oczekiwanie na publikację"
+STATUS_DOWNLOAD_ERROR = "Błąd pobierania"
+STATUS_STALE = "Dane nieaktualne"
+STATUS_NO_HISTORY = "Brak historii"
 UNIT_PRICE = "zł/l"
+UNIT_GROSZ = "gr"
+
+EVENT_PRICES_UPDATED = f"{DOMAIN}_updated"
 
 CONF_NOTIFICATIONS_ENABLED = "notifications_enabled"
 CONF_NOTIFICATION_TIME = "notification_time"
@@ -40,6 +49,11 @@ CONF_NOTIFICATION_DEVICES = "notification_devices"
 CONF_SELECTED_DEVICE = "selected_device"
 CONF_DEVICE_NAME = "device_name"
 CONF_DEVICE_ENABLED = "device_enabled"
+CONF_NOTIFICATION_FUELS = "notification_fuels"
+CONF_NOTIFICATION_ONLY_ON_CHANGE = "notification_only_on_change"
+CONF_NOTIFICATION_MIN_CHANGE_GROSZ = "notification_min_change_grosz"
+CONF_NOTIFICATION_CUSTOM_TITLE = "notification_custom_title"
+CONF_NOTIFICATION_CUSTOM_MESSAGE = "notification_custom_message"
 
 DEVICE_SERVICE = "service"
 DEVICE_NAME = "name"
@@ -57,6 +71,11 @@ NOTIFICATION_MODES = (
 DEFAULT_NOTIFICATIONS_ENABLED = False
 DEFAULT_NOTIFICATION_TIME = "18:00:00"
 DEFAULT_NOTIFICATION_MODE = NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION
+DEFAULT_NOTIFICATION_FUELS = list(FUELS)
+DEFAULT_NOTIFICATION_ONLY_ON_CHANGE = False
+DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ = 0
+DEFAULT_NOTIFICATION_CUSTOM_TITLE = ""
+DEFAULT_NOTIFICATION_CUSTOM_MESSAGE = ""
 
 NOTIFICATION_TITLE = "Ceny paliw GOV.PL"
 NOTIFICATION_TEST_TITLE = "Test powiadomienia"
@@ -65,5 +84,9 @@ NOTIFICATION_DATA = {
     "priority": "high",
 }
 
-STORAGE_VERSION = 1
-STORAGE_KEY_PREFIX = f"{DOMAIN}.notification_state"
+NOTIFICATION_STORAGE_VERSION = 1
+NOTIFICATION_STORAGE_KEY_PREFIX = f"{DOMAIN}.notification_state"
+HISTORY_STORAGE_VERSION = 1
+HISTORY_STORAGE_KEY_PREFIX = f"{DOMAIN}.history"
+HISTORY_RETENTION_DAYS = 120
+HISTORY_PERIODS = (7, 30, 90)

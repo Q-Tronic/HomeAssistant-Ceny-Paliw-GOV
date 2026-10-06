@@ -9,7 +9,26 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .api import PricePeriod
-from .coordinator import FuelPriceCoordinator
+from .const import (
+    CONF_NOTIFICATION_CUSTOM_MESSAGE,
+    CONF_NOTIFICATION_CUSTOM_TITLE,
+    CONF_NOTIFICATION_FUELS,
+    CONF_NOTIFICATION_MIN_CHANGE_GROSZ,
+    CONF_NOTIFICATION_MODE,
+    CONF_NOTIFICATION_ONLY_ON_CHANGE,
+    CONF_NOTIFICATION_TIME,
+    CONF_NOTIFICATIONS_ENABLED,
+    DEFAULT_NOTIFICATION_FUELS,
+    DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ,
+    DEFAULT_NOTIFICATION_MODE,
+    DEFAULT_NOTIFICATION_ONLY_ON_CHANGE,
+    DEFAULT_NOTIFICATION_TIME,
+    DEFAULT_NOTIFICATIONS_ENABLED,
+    EVENT_PRICES_UPDATED,
+    FUELS,
+    HISTORY_PERIODS,
+    VERSION,
+)
 
 
 def _period_as_dict(period: PricePeriod | None) -> dict[str, Any] | None:
@@ -27,14 +46,35 @@ def _period_as_dict(period: PricePeriod | None) -> dict[str, Any] | None:
     }
 
 
+def _summary_as_dict(summary: dict[str, Any]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in summary.items():
+        result[key] = float(value) if isinstance(value, Decimal) else value
+    return result
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant,
     entry: ConfigEntry,
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    coordinator: FuelPriceCoordinator = entry.runtime_data.coordinator
+    runtime = entry.runtime_data
+    coordinator = runtime.coordinator
+    history = runtime.history
+    notifications = runtime.notifications
     data = coordinator.data
+
+    history_summaries: dict[str, Any] = {}
+    for fuel in FUELS:
+        history_summaries[fuel] = {
+            str(days): _summary_as_dict(
+                history.summary(fuel, days, data.today_date)
+            )
+            for days in HISTORY_PERIODS
+        }
+
     return {
+        "integration_version": VERSION,
         "today_date": data.today_date.isoformat(),
         "tomorrow_date": data.tomorrow_date.isoformat(),
         "today": _period_as_dict(data.today),
@@ -42,16 +82,68 @@ async def async_get_config_entry_diagnostics(
         "fetched_at": data.fetched_at.isoformat(),
         "parsed_periods": data.parsed_periods,
         "last_update_success": coordinator.last_update_success,
-        "notifications_enabled": bool(entry.options.get("notifications_enabled", False)),
-        "notification_time": entry.options.get("notification_time", "18:00:00"),
-        "notification_mode": entry.options.get("notification_mode", "scheduled_then_publication"),
-        "notification_devices": [
-            {
-                "service": device.get("service"),
-                "name": device.get("name"),
-                "enabled": device.get("enabled", True),
-            }
-            for device in entry.options.get("notification_devices", [])
-            if isinstance(device, dict)
-        ],
+        "last_successful_update": (
+            coordinator.last_successful_update.isoformat()
+            if coordinator.last_successful_update
+            else None
+        ),
+        "last_error_kind": coordinator.last_error_kind,
+        "last_error_message": coordinator.last_error_message,
+        "event_name": EVENT_PRICES_UPDATED,
+        "history": {
+            "stored_records": len(history.records),
+            "summaries": history_summaries,
+        },
+        "notifications": {
+            "enabled": bool(
+                entry.options.get(
+                    CONF_NOTIFICATIONS_ENABLED,
+                    DEFAULT_NOTIFICATIONS_ENABLED,
+                )
+            ),
+            "time": entry.options.get(
+                CONF_NOTIFICATION_TIME,
+                DEFAULT_NOTIFICATION_TIME,
+            ),
+            "mode": entry.options.get(
+                CONF_NOTIFICATION_MODE,
+                DEFAULT_NOTIFICATION_MODE,
+            ),
+            "fuels": entry.options.get(
+                CONF_NOTIFICATION_FUELS,
+                list(DEFAULT_NOTIFICATION_FUELS),
+            ),
+            "only_on_change": bool(
+                entry.options.get(
+                    CONF_NOTIFICATION_ONLY_ON_CHANGE,
+                    DEFAULT_NOTIFICATION_ONLY_ON_CHANGE,
+                )
+            ),
+            "minimum_change_grosz": entry.options.get(
+                CONF_NOTIFICATION_MIN_CHANGE_GROSZ,
+                DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ,
+            ),
+            "custom_title_configured": bool(
+                str(entry.options.get(CONF_NOTIFICATION_CUSTOM_TITLE, "")).strip()
+            ),
+            "custom_message_configured": bool(
+                str(entry.options.get(CONF_NOTIFICATION_CUSTOM_MESSAGE, "")).strip()
+            ),
+            "missing_enabled_targets": notifications.missing_enabled_targets,
+            "last_send_status": notifications.last_send_status,
+            "last_send_at": (
+                notifications.last_send_at.isoformat()
+                if notifications.last_send_at
+                else None
+            ),
+            "devices": [
+                {
+                    "service": device.get("service"),
+                    "name": device.get("name"),
+                    "enabled": device.get("enabled", True),
+                }
+                for device in entry.options.get("notification_devices", [])
+                if isinstance(device, dict)
+            ],
+        },
     }

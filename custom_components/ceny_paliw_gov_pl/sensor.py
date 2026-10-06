@@ -1,4 +1,4 @@
-"""Sensors for Ceny paliw GOV.PL."""
+"""Sensor platform for Ceny paliw GOV.PL."""
 
 from __future__ import annotations
 
@@ -12,22 +12,34 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .api import FuelPriceData, PricePeriod
 from .const import (
     AUTHOR,
     DOMAIN,
+    EVENT_PRICES_UPDATED,
     FUEL_NAMES,
     FUEL_ON,
     FUEL_PB95,
     FUEL_PB98,
+    FUELS,
+    HISTORY_PERIODS,
     NAME,
     NEWS_URL,
+    STALE_DATA_AFTER,
+    STATUS_DOWNLOAD_ERROR,
     STATUS_NO_CHANGE,
+    STATUS_NO_HISTORY,
     STATUS_NOT_PUBLISHED,
+    STATUS_PUBLISHED,
+    STATUS_STALE,
+    STATUS_WAITING,
     UNIT_PRICE,
+    VERSION,
 )
 from .coordinator import FuelPriceCoordinator
+from .history import FuelPriceHistoryManager
 
 DayKind = Literal["today", "tomorrow"]
 SensorKind = Literal["price", "change"]
@@ -127,13 +139,42 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up fuel price sensors from a config entry."""
-    coordinator: FuelPriceCoordinator = entry.runtime_data.coordinator
-    async_add_entities(
+    runtime = entry.runtime_data
+    coordinator: FuelPriceCoordinator = runtime.coordinator
+    history: FuelPriceHistoryManager = runtime.history
+
+    entities: list[SensorEntity] = [
         FuelPriceSensor(coordinator, description) for description in SENSORS
+    ]
+    entities.append(FuelPricesStatusSensor(entry, coordinator))
+    entities.extend(
+        FuelHistoryAverageSensor(coordinator, history, fuel, days)
+        for fuel in FUELS
+        for days in HISTORY_PERIODS
     )
+    async_add_entities(entities)
 
 
-class FuelPriceSensor(CoordinatorEntity[FuelPriceCoordinator], SensorEntity):
+class FuelEntityBase:
+    """Shared device info."""
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, DOMAIN)},
+            name=NAME,
+            manufacturer=AUTHOR,
+            model="Maksymalne ceny detaliczne paliw",
+            configuration_url=NEWS_URL,
+        )
+
+
+class FuelPriceSensor(
+    FuelEntityBase,
+    CoordinatorEntity[FuelPriceCoordinator],
+    SensorEntity,
+):
     """Representation of one fuel price sensor."""
 
     entity_description: FuelSensorDescription
@@ -148,17 +189,6 @@ class FuelPriceSensor(CoordinatorEntity[FuelPriceCoordinator], SensorEntity):
         self.entity_description = description
         self._attr_unique_id = f"{DOMAIN}_{description.key}"
         self._attr_name = description.name
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, DOMAIN)},
-            name=NAME,
-            manufacturer=AUTHOR,
-            model="Maksymalne ceny detaliczne paliw",
-            configuration_url=NEWS_URL,
-        )
 
     @property
     def native_value(self) -> str | float:
@@ -299,12 +329,22 @@ class FuelPriceSensor(CoordinatorEntity[FuelPriceCoordinator], SensorEntity):
 
         if grosz is None:
             direction = "nie_opublikowano"
+            trend = "not_published"
         elif grosz > 0:
             direction = "drozej"
+            trend = "up"
         elif grosz < 0:
             direction = "taniej"
+            trend = "down"
         else:
             direction = "bez_zmian"
+            trend = "equal"
+
+        percent: Decimal | None = None
+        if difference is not None and today_price not in (None, Decimal("0")):
+            percent = ((difference / today_price) * Decimal("100")).quantize(
+                Decimal("0.01")
+            )
 
         return {
             "paliwo": FUEL_NAMES[self.entity_description.fuel],
@@ -312,10 +352,142 @@ class FuelPriceSensor(CoordinatorEntity[FuelPriceCoordinator], SensorEntity):
             "cena_jutro": float(tomorrow_price) if tomorrow_price is not None else None,
             "roznica_zl": float(difference) if difference is not None else None,
             "roznica_gr": grosz,
+            "roznica_procent": float(percent) if percent is not None else None,
             "kierunek": direction,
+            "trend": trend,
             "data_dzis": data.today_date.isoformat(),
             "data_jutro": data.tomorrow_date.isoformat(),
+            "data_publikacji_jutro": (
+                tomorrow_period.published_on.isoformat()
+                if tomorrow_period and tomorrow_period.published_on
+                else None
+            ),
             "zrodlo_dzis": today_period.source_url if today_period else NEWS_URL,
             "zrodlo_jutro": tomorrow_period.source_url if tomorrow_period else NEWS_URL,
             "ostatnia_aktualizacja": data.fetched_at.isoformat(),
+        }
+
+
+class FuelPricesStatusSensor(
+    FuelEntityBase,
+    CoordinatorEntity[FuelPriceCoordinator],
+    SensorEntity,
+):
+    """Integration status sensor that remains readable after update failures."""
+
+    _attr_has_entity_name = False
+    _attr_name = "Status publikacji cen paliw"
+    _attr_unique_id = f"{DOMAIN}_status"
+    _attr_icon = "mdi:information-outline"
+
+    def __init__(self, entry: ConfigEntry, coordinator: FuelPriceCoordinator) -> None:
+        super().__init__(coordinator)
+        self.entry = entry
+
+    @property
+    def available(self) -> bool:
+        """Keep the status sensor available even after a failed refresh."""
+        return True
+
+    @property
+    def native_value(self) -> str:
+        if not self.coordinator.last_update_success:
+            return STATUS_DOWNLOAD_ERROR
+        data = self.coordinator.data
+        if dt_util.now() - data.fetched_at > STALE_DATA_AFTER:
+            return STATUS_STALE
+        if data.tomorrow is not None:
+            return STATUS_PUBLISHED
+        return STATUS_WAITING
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        runtime = self.entry.runtime_data
+        return {
+            "wersja_integracji": VERSION,
+            "data_dzis": data.today_date.isoformat(),
+            "data_jutro": data.tomorrow_date.isoformat(),
+            "jutro_opublikowane": data.tomorrow is not None,
+            "ostatnie_pobranie": data.fetched_at.isoformat(),
+            "ostatnia_udana_aktualizacja": (
+                self.coordinator.last_successful_update.isoformat()
+                if self.coordinator.last_successful_update
+                else data.fetched_at.isoformat()
+            ),
+            "ostatni_blad": self.coordinator.last_error_message,
+            "typ_ostatniego_bledu": self.coordinator.last_error_kind,
+            "znalezione_publikacje": data.parsed_periods,
+            "brakujace_cele_powiadomien": runtime.notifications.missing_enabled_targets,
+            "zdarzenie_aktualizacji": EVENT_PRICES_UPDATED,
+            "zrodlo": NEWS_URL,
+        }
+
+
+class FuelHistoryAverageSensor(
+    FuelEntityBase,
+    CoordinatorEntity[FuelPriceCoordinator],
+    SensorEntity,
+):
+    """Average price and statistics for a local history window."""
+
+    _attr_has_entity_name = False
+    _attr_icon = "mdi:chart-line"
+    _attr_suggested_display_precision = 2
+
+    def __init__(
+        self,
+        coordinator: FuelPriceCoordinator,
+        history: FuelPriceHistoryManager,
+        fuel: str,
+        days: int,
+    ) -> None:
+        super().__init__(coordinator)
+        self.history = history
+        self.fuel = fuel
+        self.days = days
+        self._attr_unique_id = f"{DOMAIN}_{fuel}_average_{days}d"
+        self._attr_name = f"Średnia {FUEL_NAMES[fuel]} {days} dni"
+
+    def _summary(self) -> dict[str, Any]:
+        return self.history.summary(
+            self.fuel,
+            self.days,
+            self.coordinator.data.today_date,
+        )
+
+    @property
+    def native_value(self) -> float | str:
+        summary = self._summary()
+        average = summary["average"]
+        if average is None:
+            return STATUS_NO_HISTORY
+        return float(average)
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        return UNIT_PRICE if self._summary()["average"] is not None else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        summary = self._summary()
+
+        def number(value: Any) -> float | None:
+            return float(value) if isinstance(value, Decimal) else None
+
+        return {
+            "paliwo": FUEL_NAMES[self.fuel],
+            "okres_dni": self.days,
+            "liczba_probek": summary["samples"],
+            "minimum": number(summary["minimum"]),
+            "maksimum": number(summary["maximum"]),
+            "pierwsza_cena": number(summary["first"]),
+            "ostatnia_cena": number(summary["last"]),
+            "zmiana_zl": number(summary["change"]),
+            "zmiana_procent": number(summary["change_percent"]),
+            "zapisane_dni_lacznie": self.history.available_days(
+                self.fuel,
+                self.coordinator.data.today_date,
+            ),
+            "historia_lokalna": True,
         }

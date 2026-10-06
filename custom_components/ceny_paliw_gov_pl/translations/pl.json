@@ -17,28 +17,60 @@
         "title": "Konfiguracja Ceny paliw GOV.PL",
         "description": "Wybierz sekcję konfiguracji. Zmiany zostaną zastosowane po wybraniu opcji Zapisz i zakończ.",
         "menu_options": {
-          "notification_settings": "Ustawienia powiadomień",
+          "notification_settings": "Powiadomienia: harmonogram",
+          "notification_content": "Powiadomienia: treść i paliwa",
+          "notification_filters": "Powiadomienia: filtry zmian",
           "phones": "Telefony",
+          "diagnostics": "Diagnostyka i akcje",
           "save": "Zapisz i zakończ"
         },
         "menu_option_descriptions": {
-          "notification_settings": "Włącz powiadomienia, ustaw godzinę oraz sposób wysyłki.",
+          "notification_settings": "Włącz powiadomienia, ustaw godzinę oraz sposób automatycznej wysyłki.",
+          "notification_content": "Wybierz paliwa i opcjonalnie ustaw własny tytuł lub treść wiadomości.",
+          "notification_filters": "Wysyłaj tylko przy zmianach cen i ustaw minimalną zmianę w groszach.",
           "phones": "Dodawaj, usuwaj i konfiguruj telefony pojedynczo.",
+          "diagnostics": "Sprawdź stan źródła, historię, telefony oraz wykonaj ręczne akcje.",
           "save": "Zapisz wszystkie zmiany i przeładuj integrację."
         }
       },
       "notification_settings": {
-        "title": "Ustawienia powiadomień",
-        "description": "Ustaw ogólne zasady codziennych powiadomień.",
+        "title": "Harmonogram powiadomień",
+        "description": "Ustaw ogólne zasady automatycznych powiadomień.",
         "data": {
-          "notifications_enabled": "Włącz powiadomienia",
+          "notifications_enabled": "Włącz automatyczne powiadomienia",
           "notification_time": "Godzina powiadomienia",
           "notification_mode": "Tryb wysyłki"
         },
         "data_description": {
-          "notifications_enabled": "Główny przełącznik wszystkich automatycznych powiadomień tej integracji.",
+          "notifications_enabled": "Główny przełącznik automatycznej wysyłki. Ręczne przyciski pozostają dostępne.",
           "notification_time": "Godzina używana w trybach z zaplanowaną wysyłką.",
-          "notification_mode": "Domyślnie integracja wysyła o ustawionej godzinie, a gdy cen jeszcze nie ma, czeka na publikację i wysyła je od razu po wykryciu."
+          "notification_mode": "Domyślnie integracja wysyła o ustawionej godzinie, a gdy cen jeszcze nie ma, czeka na publikację i wysyła je po jej wykryciu."
+        }
+      },
+      "notification_content": {
+        "title": "Treść i paliwa w powiadomieniu",
+        "description": "Wybierz paliwa. Puste pola szablonów używają domyślnej treści. W szablonach możesz używać zmiennych `today_date`, `tomorrow_date`, `published` oraz `pb95`, `pb98`, `on`. Dla paliwa dostępne są pola `today`, `tomorrow`, `today_text`, `tomorrow_text`, `change`, `difference_grosz`. Przykład: `{{ pb95.change }}`.",
+        "data": {
+          "notification_fuels": "Paliwa w powiadomieniu",
+          "notification_custom_title": "Własny tytuł, opcjonalnie",
+          "notification_custom_message": "Własna treść, opcjonalnie"
+        },
+        "data_description": {
+          "notification_fuels": "Domyślnie wysyłane są PB95, PB98 i ON.",
+          "notification_custom_title": "Obsługuje szablony Home Assistant. Pozostaw puste, aby użyć domyślnego tytułu.",
+          "notification_custom_message": "Obsługuje szablony Home Assistant. Pozostaw puste, aby użyć domyślnej wiadomości z cenami i zmianami."
+        }
+      },
+      "notification_filters": {
+        "title": "Filtry zmian cen",
+        "description": "Możesz ograniczyć automatyczne wiadomości do dni, w których wybrane paliwa zmieniły cenę.",
+        "data": {
+          "notification_only_on_change": "Wysyłaj tylko, gdy cena się zmieni",
+          "notification_min_change_grosz": "Minimalna zmiana ceny"
+        },
+        "data_description": {
+          "notification_only_on_change": "Jeśli żadne z wybranych paliw nie spełni warunku, wiadomość dla tego dnia zostanie pominięta.",
+          "notification_min_change_grosz": "Próg działa przy włączonej opcji wysyłania tylko przy zmianie. Wartość 0 oznacza dowolną zmianę większą od 0gr."
         }
       },
       "phones": {
@@ -101,6 +133,20 @@
           "device_name": "Wpisz własną nazwę albo pozostaw nazwę domyślną.",
           "device_enabled": "Wyłączenie zachowuje telefon na liście, ale pomija go przy codziennych automatycznych powiadomieniach."
         }
+      },
+      "diagnostics": {
+        "title": "Diagnostyka i akcje",
+        "description": "Cena na jutro: **{tomorrow_status}**. Ostatnie pobranie: `{fetched_at}`. Znalezione publikacje: **{parsed_periods}**. Zapisane dni historii: **{history_days}**. Ostatni błąd: **{last_error}**. Niedostępne cele powiadomień: **{missing_targets}**. Ostatnia akcja: **{action_status}**.",
+        "menu_options": {
+          "diagnostics_refresh": "Sprawdź ceny teraz",
+          "diagnostics_send_all": "Wyślij wszystkim teraz",
+          "init": "Wróć do menu głównego"
+        },
+        "menu_option_descriptions": {
+          "diagnostics_refresh": "Natychmiast sprawdź gov.pl i odśwież encje.",
+          "diagnostics_send_all": "Wyślij aktualny dzienny komunikat do wszystkich włączonych telefonów.",
+          "init": "Wróć do głównego menu konfiguracji."
+        }
       }
     }
   },
@@ -111,6 +157,16 @@
         "on_publication": "Natychmiast po publikacji nowych cen",
         "scheduled_then_publication": "O ustawionej godzinie, a jeśli brak cen, od razu po publikacji (domyślne)"
       }
+    }
+  },
+  "issues": {
+    "parser_error": {
+      "title": "Nie można odczytać cen paliw z gov.pl",
+      "description": "Integracja pobrała stronę gov.pl, ale nie potrafi odczytać publikacji z cenami. Układ strony mógł się zmienić. Ostatni błąd: `{error}`. Sprawdź dostępność aktualizacji integracji lub zgłoś problem w repozytorium."
+    },
+    "notification_target_missing": {
+      "title": "Telefon do powiadomień nie jest dostępny",
+      "description": "Skonfigurowany telefon **{name}** używa celu `{target}`, którego Home Assistant obecnie nie udostępnia. Otwórz konfigurację integracji i wybierz aktualny telefon albo wyłącz automatyczną wysyłkę dla tego wpisu."
     }
   }
 }

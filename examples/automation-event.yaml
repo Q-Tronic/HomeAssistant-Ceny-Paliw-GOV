@@ -1,0 +1,11 @@
+alias: Ceny paliw GOV.PL - nowa publikacja
+triggers:
+  - trigger: event
+    event_type: ceny_paliw_gov_pl_updated
+actions:
+  - action: persistent_notification.create
+    data:
+      title: Nowe ceny paliw
+      message: >
+        Integracja wykryła zmianę danych dla {{ trigger.event.data.tomorrow_date }}.
+mode: single

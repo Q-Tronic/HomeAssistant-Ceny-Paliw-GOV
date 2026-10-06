@@ -11,34 +11,48 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.exceptions import TemplateError
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.storage import Store
+from homeassistant.helpers.template import Template
 from homeassistant.util import dt as dt_util
 
 from .api import FuelPriceData, PricePeriod
 from .const import (
+    CONF_NOTIFICATION_CUSTOM_MESSAGE,
+    CONF_NOTIFICATION_CUSTOM_TITLE,
     CONF_NOTIFICATION_DEVICES,
+    CONF_NOTIFICATION_FUELS,
+    CONF_NOTIFICATION_MIN_CHANGE_GROSZ,
     CONF_NOTIFICATION_MODE,
+    CONF_NOTIFICATION_ONLY_ON_CHANGE,
     CONF_NOTIFICATION_TIME,
     CONF_NOTIFICATIONS_ENABLED,
+    DEFAULT_NOTIFICATION_CUSTOM_MESSAGE,
+    DEFAULT_NOTIFICATION_CUSTOM_TITLE,
+    DEFAULT_NOTIFICATION_FUELS,
+    DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ,
     DEFAULT_NOTIFICATION_MODE,
+    DEFAULT_NOTIFICATION_ONLY_ON_CHANGE,
     DEFAULT_NOTIFICATION_TIME,
     DEFAULT_NOTIFICATIONS_ENABLED,
     DEVICE_ENABLED,
     DEVICE_NAME,
     DEVICE_SERVICE,
+    DOMAIN,
     FUEL_NAMES,
     FUELS,
     NOTIFICATION_DATA,
     NOTIFICATION_MODE_ON_PUBLICATION,
     NOTIFICATION_MODE_SCHEDULED,
     NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION,
+    NOTIFICATION_STORAGE_KEY_PREFIX,
+    NOTIFICATION_STORAGE_VERSION,
     NOTIFICATION_TEST_TITLE,
     NOTIFICATION_TITLE,
     STATUS_NO_CHANGE,
     STATUS_NOT_PUBLISHED,
-    STORAGE_KEY_PREFIX,
-    STORAGE_VERSION,
     UNIT_PRICE,
 )
 from .coordinator import FuelPriceCoordinator
@@ -72,6 +86,15 @@ def mobile_app_notify_targets(hass: HomeAssistant) -> list[dict[str, str]]:
     return targets
 
 
+def selected_fuels(options: Mapping[str, Any] | None) -> list[str]:
+    """Return valid fuels selected for notifications."""
+    raw = (options or {}).get(CONF_NOTIFICATION_FUELS, DEFAULT_NOTIFICATION_FUELS)
+    if not isinstance(raw, list):
+        return list(FUELS)
+    fuels = [str(fuel) for fuel in raw if str(fuel) in FUELS]
+    return fuels or list(FUELS)
+
+
 def _format_price(value: Decimal | None) -> str:
     if value is None:
         return STATUS_NOT_PUBLISHED
@@ -84,11 +107,12 @@ def _price(period: PricePeriod | None, fuel: str) -> Decimal | None:
     return period.prices.get(fuel)
 
 
-def _difference_grosz(
+def difference_grosz(
     today_period: PricePeriod | None,
     tomorrow_period: PricePeriod | None,
     fuel: str,
 ) -> int | None:
+    """Return tomorrow minus today in grosz."""
     today = _price(today_period, fuel)
     tomorrow = _price(tomorrow_period, fuel)
     if today is None or tomorrow is None:
@@ -107,7 +131,7 @@ def change_text(
     fuel: str,
 ) -> str:
     """Return the same human readable change text as the sensor."""
-    grosz = _difference_grosz(today_period, tomorrow_period, fuel)
+    grosz = difference_grosz(today_period, tomorrow_period, fuel)
     if grosz is None:
         return STATUS_NOT_PUBLISHED
     if grosz > 0:
@@ -117,12 +141,15 @@ def change_text(
     return STATUS_NO_CHANGE
 
 
-def build_price_notification(data: FuelPriceData) -> str:
+def build_price_notification(
+    data: FuelPriceData,
+    fuels: list[str] | None = None,
+) -> str:
     """Build the notification body with today, tomorrow and price changes."""
     date_text = data.tomorrow_date.strftime("%d.%m.%Y")
     lines = [f"Ceny paliw na jutro, {date_text}", ""]
 
-    for fuel in FUELS:
+    for fuel in fuels or list(FUELS):
         today = _price(data.today, fuel)
         tomorrow = _price(data.tomorrow, fuel)
         lines.append(
@@ -141,6 +168,117 @@ def build_not_published_notification(data: FuelPriceData) -> str:
         f"Ceny paliw na jutro, {date_text}\n\n"
         "Ministerstwo Energii nie opublikowało jeszcze cen na jutro."
     )
+
+
+def _template_variables(data: FuelPriceData) -> dict[str, Any]:
+    variables: dict[str, Any] = {
+        "today_date": data.today_date.isoformat(),
+        "tomorrow_date": data.tomorrow_date.isoformat(),
+        "published": data.tomorrow is not None,
+    }
+    for fuel in FUELS:
+        today = _price(data.today, fuel)
+        tomorrow = _price(data.tomorrow, fuel)
+        diff = difference_grosz(data.today, data.tomorrow, fuel)
+        variables[fuel] = {
+            "name": FUEL_NAMES[fuel],
+            "today": float(today) if today is not None else None,
+            "tomorrow": float(tomorrow) if tomorrow is not None else None,
+            "today_text": _format_price(today),
+            "tomorrow_text": _format_price(tomorrow),
+            "change": change_text(data.today, data.tomorrow, fuel),
+            "difference_grosz": diff,
+        }
+    return variables
+
+
+def _render_custom_template(
+    hass: HomeAssistant,
+    raw_template: str,
+    variables: dict[str, Any],
+) -> str | None:
+    """Render a Home Assistant template and fall back on error."""
+    if not raw_template.strip():
+        return None
+    try:
+        return str(
+            Template(raw_template, hass).async_render(
+                variables=variables,
+                parse_result=False,
+            )
+        ).strip()
+    except TemplateError as err:
+        _LOGGER.error("Błąd szablonu powiadomienia: %s", err)
+        return None
+
+
+def build_notification_content(
+    hass: HomeAssistant,
+    data: FuelPriceData,
+    options: Mapping[str, Any] | None = None,
+) -> tuple[str, str]:
+    """Build title and body, including optional Home Assistant templates."""
+    options = options or {}
+    fuels = selected_fuels(options)
+    default_message = (
+        build_price_notification(data, fuels)
+        if data.tomorrow is not None
+        else build_not_published_notification(data)
+    )
+    variables = _template_variables(data)
+
+    custom_title = str(
+        options.get(CONF_NOTIFICATION_CUSTOM_TITLE, DEFAULT_NOTIFICATION_CUSTOM_TITLE)
+        or ""
+    )
+    custom_message = str(
+        options.get(
+            CONF_NOTIFICATION_CUSTOM_MESSAGE,
+            DEFAULT_NOTIFICATION_CUSTOM_MESSAGE,
+        )
+        or ""
+    )
+
+    title = _render_custom_template(hass, custom_title, variables) or NOTIFICATION_TITLE
+    message = _render_custom_template(hass, custom_message, variables) or default_message
+    return title, message
+
+
+def has_relevant_change(
+    data: FuelPriceData,
+    options: Mapping[str, Any] | None,
+) -> bool:
+    """Return whether an automatic notification passes change filters."""
+    options = options or {}
+    if not bool(
+        options.get(
+            CONF_NOTIFICATION_ONLY_ON_CHANGE,
+            DEFAULT_NOTIFICATION_ONLY_ON_CHANGE,
+        )
+    ):
+        return True
+    if data.today is None or data.tomorrow is None:
+        return False
+
+    try:
+        threshold = max(
+            0,
+            int(
+                options.get(
+                    CONF_NOTIFICATION_MIN_CHANGE_GROSZ,
+                    DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ,
+                )
+            ),
+        )
+    except (TypeError, ValueError):
+        threshold = DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ
+
+    required = max(1, threshold)
+    for fuel in selected_fuels(options):
+        difference = difference_grosz(data.today, data.tomorrow, fuel)
+        if difference is not None and abs(difference) >= required:
+            return True
+    return False
 
 
 async def async_send_mobile_notification(
@@ -191,18 +329,11 @@ async def async_send_current_notification(
     hass: HomeAssistant,
     target: str,
     data: FuelPriceData,
+    options: Mapping[str, Any] | None = None,
 ) -> None:
     """Send the same content used by the normal daily notification."""
-    if data.tomorrow is None:
-        message = build_not_published_notification(data)
-    else:
-        message = build_price_notification(data)
-    await async_send_mobile_notification(
-        hass,
-        target,
-        NOTIFICATION_TITLE,
-        message,
-    )
+    title, message = build_notification_content(hass, data, options)
+    await async_send_mobile_notification(hass, target, title, message)
 
 
 class FuelPriceNotificationManager:
@@ -219,13 +350,15 @@ class FuelPriceNotificationManager:
         self.coordinator = coordinator
         self._store: Store[dict[str, Any]] = Store(
             hass,
-            STORAGE_VERSION,
-            f"{STORAGE_KEY_PREFIX}.{entry.entry_id}",
+            NOTIFICATION_STORAGE_VERSION,
+            f"{NOTIFICATION_STORAGE_KEY_PREFIX}.{entry.entry_id}",
         )
         self._state: dict[str, Any] = {}
         self._unsub_time: CALLBACK_TYPE | None = None
         self._unsub_coordinator: CALLBACK_TYPE | None = None
         self._send_lock = asyncio.Lock()
+        self.last_send_status = "Brak wysyłki"
+        self.last_send_at: datetime | None = None
 
     @property
     def enabled(self) -> bool:
@@ -269,9 +402,24 @@ class FuelPriceNotificationManager:
             if device.get(DEVICE_ENABLED, True) and device.get(DEVICE_SERVICE)
         ]
 
+    @property
+    def missing_enabled_targets(self) -> list[str]:
+        """Return configured enabled targets that no longer exist."""
+        missing: list[str] = []
+        for device in self.enabled_devices:
+            target = str(device.get(DEVICE_SERVICE, ""))
+            if not target.startswith("notify."):
+                missing.append(target)
+                continue
+            service = target.split(".", 1)[1]
+            if not self.hass.services.has_service("notify", service):
+                missing.append(target)
+        return missing
+
     async def async_start(self) -> None:
         """Start notification listeners."""
         self._state = await self._store.async_load() or {}
+        self._sync_target_repairs()
         self._unsub_coordinator = self.coordinator.async_add_listener(
             self._handle_coordinator_update
         )
@@ -296,6 +444,14 @@ class FuelPriceNotificationManager:
         if self._unsub_coordinator is not None:
             self._unsub_coordinator()
             self._unsub_coordinator = None
+        for device in self.devices:
+            target = str(device.get(DEVICE_SERVICE, ""))
+            if target:
+                ir.async_delete_issue(
+                    self.hass,
+                    DOMAIN,
+                    self._target_issue_id(target),
+                )
 
     @staticmethod
     def _parse_time(value: str) -> tuple[int, int, int]:
@@ -311,6 +467,39 @@ class FuelPriceNotificationManager:
         if not 0 <= hour <= 23 or not 0 <= minute <= 59 or not 0 <= second <= 59:
             return 18, 0, 0
         return hour, minute, second
+
+    @staticmethod
+    def _target_issue_id(target: str) -> str:
+        return "missing_notify_target_" + "".join(
+            char if char.isalnum() else "_" for char in target.lower()
+        )
+
+    def _sync_target_repairs(self) -> None:
+        """Create or clear repair warnings for renamed or missing phones."""
+        for device in self.devices:
+            target = str(device.get(DEVICE_SERVICE, ""))
+            if not target:
+                continue
+            issue_id = self._target_issue_id(target)
+            service = target.split(".", 1)[1] if target.startswith("notify.") else ""
+            available = bool(service and self.hass.services.has_service("notify", service))
+            enabled = bool(device.get(DEVICE_ENABLED, True))
+            if available or not enabled:
+                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+                continue
+            display_name = str(device.get(DEVICE_NAME) or default_device_name(target))
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                issue_id,
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="notification_target_missing",
+                translation_placeholders={
+                    "name": display_name,
+                    "target": target,
+                },
+            )
 
     def _target_date(self) -> str:
         return self.coordinator.data.tomorrow_date.isoformat()
@@ -346,6 +535,7 @@ class FuelPriceNotificationManager:
 
     @callback
     def _handle_coordinator_update(self) -> None:
+        self._sync_target_repairs()
         self.hass.async_create_task(
             self._async_handle_coordinator_update(),
             "Ceny paliw GOV.PL powiadomienia po aktualizacji danych",
@@ -378,6 +568,8 @@ class FuelPriceNotificationManager:
             return
 
         await self.coordinator.async_request_refresh()
+        if not self.coordinator.last_update_success:
+            return
         if self._already_notified():
             return
 
@@ -425,18 +617,54 @@ class FuelPriceNotificationManager:
                 self._state["waiting_for_date"] = self._target_date()
                 await self._async_save_state()
 
+    async def _async_mark_filtered_as_done(self) -> None:
+        """Mark a date as handled when notification filters intentionally skip it."""
+        target_date = self._target_date()
+        self._state["notified_for"] = target_date
+        self._state["notified_services"] = sorted(self._enabled_service_names())
+        self._state.pop("waiting_for_date", None)
+        self.last_send_status = "Pominięto zgodnie z filtrem zmian"
+        await self._async_save_state()
+
     async def _async_send_price_notification(self) -> None:
+        if not has_relevant_change(self.coordinator.data, self.entry.options):
+            await self._async_mark_filtered_as_done()
+            return
+        title, message = build_notification_content(
+            self.hass,
+            self.coordinator.data,
+            self.entry.options,
+        )
         await self._async_send_to_enabled_devices(
-            NOTIFICATION_TITLE,
-            build_price_notification(self.coordinator.data),
+            title,
+            message,
             mark_notified=True,
         )
 
     async def _async_send_not_published_notification(self) -> None:
+        title, message = build_notification_content(
+            self.hass,
+            self.coordinator.data,
+            self.entry.options,
+        )
         await self._async_send_to_enabled_devices(
-            NOTIFICATION_TITLE,
-            build_not_published_notification(self.coordinator.data),
+            title,
+            message,
             mark_notified=True,
+        )
+
+    async def async_send_now_to_all(self) -> int:
+        """Send the current daily-format notification to all enabled phones."""
+        self._sync_target_repairs()
+        title, message = build_notification_content(
+            self.hass,
+            self.coordinator.data,
+            self.entry.options,
+        )
+        return await self._async_send_to_enabled_devices(
+            title,
+            message,
+            mark_notified=False,
         )
 
     async def _async_send_to_enabled_devices(
@@ -445,11 +673,12 @@ class FuelPriceNotificationManager:
         message: str,
         *,
         mark_notified: bool,
-    ) -> None:
+    ) -> int:
         async with self._send_lock:
             devices = self._pending_devices() if mark_notified else self.enabled_devices
             if not devices:
-                return
+                self.last_send_status = "Brak włączonych telefonów do wysyłki"
+                return 0
 
             successful_services: set[str] = set()
             for device in devices:
@@ -473,8 +702,13 @@ class FuelPriceNotificationManager:
                 else:
                     successful_services.add(target)
 
+            self.last_send_at = dt_util.now()
+            self.last_send_status = (
+                f"Wysłano: {len(successful_services)}/{len(devices)}"
+            )
+
             if not mark_notified or not successful_services:
-                return
+                return len(successful_services)
 
             target_date = self._target_date()
             notified = self._notified_services()
@@ -487,3 +721,4 @@ class FuelPriceNotificationManager:
             elif self.mode == NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION:
                 self._state["waiting_for_date"] = target_date
             await self._async_save_state()
+            return len(successful_services)

@@ -56,6 +56,7 @@ class FuelPriceData:
     tomorrow: PricePeriod | None
     fetched_at: datetime
     parsed_periods: int
+    periods: tuple[PricePeriod, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -468,4 +469,5 @@ class FuelPriceApi:
             tomorrow=_resolve_period(periods, tomorrow),
             fetched_at=now,
             parsed_periods=len(periods),
+            periods=tuple(periods),
         )

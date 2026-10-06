@@ -1,0 +1,32 @@
+type: vertical-stack
+cards:
+  - type: entities
+    title: Ceny paliw GOV.PL
+    entities:
+      - entity: sensor.status_publikacji_cen_paliw
+        name: Status publikacji
+      - entity: sensor.cena_pb95_dzisiaj
+      - entity: sensor.cena_pb95_jutro
+      - entity: sensor.pb95_zmiana_ceny
+      - entity: sensor.cena_pb98_dzisiaj
+      - entity: sensor.cena_pb98_jutro
+      - entity: sensor.pb98_zmiana_ceny
+      - entity: sensor.cena_on_dzisiaj
+      - entity: sensor.cena_on_jutro
+      - entity: sensor.on_zmiana_ceny
+  - type: horizontal-stack
+    cards:
+      - type: button
+        entity: button.sprawdz_ceny_teraz
+        name: Sprawdź teraz
+      - type: button
+        entity: button.wyslij_wszystkim_teraz
+        name: Wyślij wszystkim
+  - type: entities
+    title: Średnie ceny
+    entities:
+      - sensor.srednia_pb95_7_dni
+      - sensor.srednia_pb95_30_dni
+      - sensor.srednia_pb95_90_dni
+      - sensor.srednia_pb98_7_dni
+      - sensor.srednia_on_7_dni

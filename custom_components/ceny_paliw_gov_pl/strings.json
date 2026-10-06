@@ -17,28 +17,60 @@
         "title": "Ceny paliw GOV.PL configuration",
         "description": "Choose a configuration section. Changes are applied after selecting Save and finish.",
         "menu_options": {
-          "notification_settings": "Notification settings",
+          "notification_settings": "Notifications: schedule",
+          "notification_content": "Notifications: content and fuels",
+          "notification_filters": "Notifications: change filters",
           "phones": "Phones",
+          "diagnostics": "Diagnostics and actions",
           "save": "Save and finish"
         },
         "menu_option_descriptions": {
-          "notification_settings": "Enable notifications, set the time and delivery mode.",
+          "notification_settings": "Enable notifications, set the time and automatic delivery mode.",
+          "notification_content": "Choose fuels and optionally customize the title or message.",
+          "notification_filters": "Send only on price changes and set a minimum change in grosz.",
           "phones": "Add, remove and configure phones individually.",
+          "diagnostics": "Check source status, history, phones and run manual actions.",
           "save": "Save all changes and reload the integration."
         }
       },
       "notification_settings": {
-        "title": "Notification settings",
-        "description": "Configure the general rules for daily notifications.",
+        "title": "Notification schedule",
+        "description": "Configure general automatic notification rules.",
         "data": {
-          "notifications_enabled": "Enable notifications",
+          "notifications_enabled": "Enable automatic notifications",
           "notification_time": "Notification time",
           "notification_mode": "Delivery mode"
         },
         "data_description": {
-          "notifications_enabled": "Master switch for all automatic notifications from this integration.",
+          "notifications_enabled": "Master switch for automatic delivery. Manual buttons remain available.",
           "notification_time": "Time used by delivery modes with scheduled sending.",
-          "notification_mode": "By default the integration sends at the selected time. If tomorrow's prices are not available yet, it waits and sends immediately after publication is detected."
+          "notification_mode": "By default the integration sends at the selected time. If tomorrow's prices are not available yet, it waits and sends after publication is detected."
+        }
+      },
+      "notification_content": {
+        "title": "Notification content and fuels",
+        "description": "Choose fuels. Empty template fields use the default content. Templates can use `today_date`, `tomorrow_date`, `published`, `pb95`, `pb98` and `on`. Each fuel exposes `today`, `tomorrow`, `today_text`, `tomorrow_text`, `change` and `difference_grosz`. Example: `{{ pb95.change }}`.",
+        "data": {
+          "notification_fuels": "Fuels in notification",
+          "notification_custom_title": "Custom title, optional",
+          "notification_custom_message": "Custom message, optional"
+        },
+        "data_description": {
+          "notification_fuels": "PB95, PB98 and diesel are included by default.",
+          "notification_custom_title": "Supports Home Assistant templates. Leave empty to use the default title.",
+          "notification_custom_message": "Supports Home Assistant templates. Leave empty to use the default message with prices and changes."
+        }
+      },
+      "notification_filters": {
+        "title": "Price change filters",
+        "description": "You can limit automatic messages to days when selected fuels changed price.",
+        "data": {
+          "notification_only_on_change": "Send only when the price changes",
+          "notification_min_change_grosz": "Minimum price change"
+        },
+        "data_description": {
+          "notification_only_on_change": "If none of the selected fuels match the condition, the message for that day is skipped.",
+          "notification_min_change_grosz": "The threshold is used when change-only delivery is enabled. A value of 0 means any change greater than 0gr."
         }
       },
       "phones": {
@@ -101,6 +133,20 @@
           "device_name": "Enter a custom name or keep the default name.",
           "device_enabled": "When disabled, the phone remains on the list but is skipped for daily automatic notifications."
         }
+      },
+      "diagnostics": {
+        "title": "Diagnostics and actions",
+        "description": "Tomorrow price: **{tomorrow_status}**. Last fetch: `{fetched_at}`. Parsed publications: **{parsed_periods}**. Stored history days: **{history_days}**. Last error: **{last_error}**. Missing notification targets: **{missing_targets}**. Last action: **{action_status}**.",
+        "menu_options": {
+          "diagnostics_refresh": "Check prices now",
+          "diagnostics_send_all": "Send to all now",
+          "init": "Back to main menu"
+        },
+        "menu_option_descriptions": {
+          "diagnostics_refresh": "Immediately check gov.pl and refresh entities.",
+          "diagnostics_send_all": "Send the current daily message to all enabled phones.",
+          "init": "Return to the main configuration menu."
+        }
       }
     }
   },
@@ -111,6 +157,16 @@
         "on_publication": "Immediately after new prices are published",
         "scheduled_then_publication": "At the configured time, or immediately after publication if prices are not available yet (default)"
       }
+    }
+  },
+  "issues": {
+    "parser_error": {
+      "title": "Fuel prices cannot be parsed from gov.pl",
+      "description": "The integration downloaded gov.pl but could not parse fuel price publications. The page layout may have changed. Last error: `{error}`. Check for an integration update or report the problem in the repository."
+    },
+    "notification_target_missing": {
+      "title": "Notification phone is unavailable",
+      "description": "Configured phone **{name}** uses target `{target}`, which Home Assistant does not currently provide. Open the integration configuration and select the current phone or disable automatic delivery for this entry."
     }
   }
 }

@@ -1,53 +1,41 @@
 # Changelog
 
+## 1.3.0
+
+- Dodano menu konfiguracji podzielone na harmonogram, treść, filtry, telefony i diagnostykę.
+- Dodano wybór paliw widocznych w powiadomieniach.
+- Dodano własny tytuł i treść powiadomień z obsługą szablonów Home Assistant.
+- Dodano opcję wysyłania tylko przy zmianie ceny.
+- Dodano minimalny próg zmiany w groszach.
+- Dodano sensor statusu publikacji i pobierania danych.
+- Dodano przycisk `Sprawdź ceny teraz`.
+- Dodano przycisk `Wyślij wszystkim teraz`.
+- Dodano lokalną historię cen do 120 dni.
+- Dodano sensory średnich cen dla 7, 30 i 90 dni dla PB95, PB98 i ON.
+- Dodano minimum, maksimum, liczbę próbek i zmianę procentową w atrybutach statystyk.
+- Dodano binarne sensory informujące, czy dane paliwo będzie jutro droższe.
+- Dodano atrybut `trend` i procentową zmianę ceny do encji porównawczych.
+- Dodano zdarzenie `ceny_paliw_gov_pl_updated` przy zmianie pobranych danych.
+- Dodano ostrzeżenie Repairs, gdy parser gov.pl przestanie rozpoznawać publikacje.
+- Dodano ostrzeżenie Repairs dla niedostępnego skonfigurowanego telefonu.
+- Rozbudowano standardową diagnostykę Home Assistanta.
+- Dodano gotowy przykład karty Lovelace.
+- Dodano przykładową automatyzację reagującą na zdarzenie aktualizacji.
+- Zachowano indywidualne podmenu telefonów, test powiadomienia oraz ręczne wysyłanie bieżącej wiadomości.
+
 ## 1.2.1
 
-- Poprawne wydanie funkcji przygotowanych dla wersji 1.2.0.
-- Zmieniono numer wersji integracji na 1.2.1, aby HACS jednoznacznie wykrył nowe wydanie.
-- Zawiera menu główne konfiguracji, osobne podmenu telefonów oraz ręczne akcje `Wyślij test` i `Wyślij powiadomienie teraz`.
-- Poprzedni release 1.2.0 został utworzony przed wysłaniem nowych plików do repozytorium i nie zawierał właściwego kodu tej wersji.
+- Poprawne wydanie zmian interfejsu powiadomień z linii 1.2.
 
 ## 1.2.0
 
-- Przebudowano konfigurację na menu główne i podmenu.
-- Dodano osobną sekcję ustawień powiadomień.
-- Dodano osobne menu zarządzania telefonami.
-- Konfiguracja telefonów nie jest już wykonywana kolejno jeden po drugim.
-- Dodano wybór konkretnego telefonu przed wejściem do jego ustawień.
-- Każdy telefon ma własne podmenu.
-- Dodano natychmiastową akcję `Wyślij test` dla wybranego telefonu.
-- Dodano natychmiastową akcję `Wyślij powiadomienie teraz` dla wybranego telefonu.
-- `Wyślij powiadomienie teraz` używa tego samego formatu wiadomości co codzienne powiadomienie.
-- Usunięto przełącznik testowego powiadomienia z formularza ustawień telefonu.
-- Usunięto techniczne informacje o sposobie dostarczania z treści testu i interfejsu konfiguracji.
-- Zachowano własną nazwę telefonu oraz osobne włączanie i wyłączanie automatycznych powiadomień.
-- Dodano przycisk `Zapisz i zakończ`, który zapisuje wszystkie zmiany i przeładowuje integrację.
+- Dodano menu i podmenu konfiguracji telefonów.
+- Dodano ręczne wysłanie testu oraz bieżącego powiadomienia.
 
 ## 1.1.0
 
-- Dodano konfigurowalne powiadomienia na telefony z Home Assistant Companion.
-- Dodano wybór jednego lub wielu celów `notify.mobile_app_*`.
-- Dodano edytowalną listę telefonów.
-- Dodano własną nazwę każdego telefonu z automatyczną nazwą domyślną.
-- Dodano osobne włączenie lub wyłączenie każdego telefonu bez usuwania go z listy.
-- Dodano test powiadomienia dla każdego wybranego telefonu.
-- Dodano wybór godziny wysyłki.
-- Dodano trzy tryby wysyłki.
-- Tryb domyślny wysyła o ustawionej godzinie, a jeżeli ceny na jutro nie są jeszcze opublikowane, czeka i wysyła je natychmiast po wykryciu publikacji.
-- Powiadomienie zawiera ceny PB95, PB98 i ON na dzisiaj i jutro oraz informację `drożej o Xgr`, `taniej o Xgr` albo `bez zmian`.
-- Dodano pamiętanie dostarczenia osobno dla każdego telefonu, aby przy ponowieniu nie dublować wiadomości na urządzeniach, które już ją otrzymały.
-- Dodano konfigurację powiadomień w Options Flow Home Assistanta.
-- Dodano `country: PL` do `hacs.json`.
-- Zaktualizowano dokumentację i tłumaczenia.
+- Dodano konfigurowalne powiadomienia mobilne.
 
 ## 1.0.0
 
-- Pierwsze wydanie integracji.
-- Obsługa PB95, PB98 i ON.
-- Osobne encje ceny na dzisiaj i jutro.
-- Encje zmiany ceny z tekstem `drożej o Xgr`, `taniej o Xgr`, `bez zmian` lub `Nie opublikowano`.
-- Obsługa publikacji jednodniowych oraz zakresów obejmujących kilka dni.
-- Automatyczne sprawdzanie danych co 30 minut.
-- Konfiguracja z interfejsu Home Assistant.
-- Instalacja przez HACS jako niestandardowe repozytorium.
-- Diagnostyka integracji.
+- Pierwsze publiczne wydanie.
