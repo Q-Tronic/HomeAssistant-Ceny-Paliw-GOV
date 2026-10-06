@@ -1,7 +1,7 @@
 {
   "domain": "ceny_paliw_gov_pl",
   "name": "Ceny paliw GOV.PL",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "codeowners": [
     "@Q-Tronic"
   ],

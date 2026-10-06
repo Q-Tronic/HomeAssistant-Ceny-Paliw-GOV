@@ -37,7 +37,7 @@ Dodatkowe atrybuty zawierają między innymi cenę liczbową, różnicę w grosz
 
 ## Powiadomienia na telefon
 
-Od wersji `1.2.0` konfiguracja powiadomień jest podzielona na czytelne menu i podmenu.
+Od wersji `1.2.1` konfiguracja powiadomień jest podzielona na czytelne menu i podmenu.
 
 Po dodaniu integracji otwórz:
 

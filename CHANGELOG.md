@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1
+
+- Poprawne wydanie funkcji przygotowanych dla wersji 1.2.0.
+- Zmieniono numer wersji integracji na 1.2.1, aby HACS jednoznacznie wykrył nowe wydanie.
+- Zawiera menu główne konfiguracji, osobne podmenu telefonów oraz ręczne akcje `Wyślij test` i `Wyślij powiadomienie teraz`.
+- Poprzedni release 1.2.0 został utworzony przed wysłaniem nowych plików do repozytorium i nie zawierał właściwego kodu tej wersji.
+
 ## 1.2.0
 
 - Przebudowano konfigurację na menu główne i podmenu.
