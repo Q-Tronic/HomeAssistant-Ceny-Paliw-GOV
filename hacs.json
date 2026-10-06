@@ -1,4 +1,5 @@
 {
   "name": "Ceny paliw GOV.PL",
-  "render_readme": true
+  "render_readme": true,
+  "country": "PL"
 }
