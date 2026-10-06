@@ -1,0 +1,14 @@
+{
+  "title": "Polish fuel prices GOV.PL",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Polish fuel prices GOV.PL",
+        "description": "Add the integration that downloads maximum retail fuel prices published by the Polish Ministry of Energy on gov.pl. Data is checked automatically every 30 minutes."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "This integration can only be configured once."
+    }
+  }
+}

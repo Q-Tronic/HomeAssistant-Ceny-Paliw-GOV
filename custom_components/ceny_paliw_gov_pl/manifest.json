@@ -1,0 +1,14 @@
+{
+  "domain": "ceny_paliw_gov_pl",
+  "name": "Ceny paliw GOV.PL",
+  "version": "1.0.0",
+  "codeowners": ["@Q-Tronic"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/Q-Tronic/homeassistant-ceny-paliw-gov",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Q-Tronic/homeassistant-ceny-paliw-gov/issues",
+  "requirements": [],
+  "single_config_entry": true
+}

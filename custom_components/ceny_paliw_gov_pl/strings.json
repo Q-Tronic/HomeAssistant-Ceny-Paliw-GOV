@@ -1,0 +1,14 @@
+{
+  "title": "Ceny paliw GOV.PL",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ceny paliw GOV.PL",
+        "description": "Dodaj integrację pobierającą maksymalne ceny detaliczne paliw publikowane przez Ministerstwo Energii na gov.pl. Dane są sprawdzane automatycznie co 30 minut."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Ta integracja może być skonfigurowana tylko raz."
+    }
+  }
+}
