@@ -6,7 +6,7 @@ from datetime import timedelta
 
 DOMAIN = "ceny_paliw_gov_pl"
 NAME = "Ceny paliw GOV.PL"
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 AUTHOR = "Q-Tronic"
 
 NEWS_URL = "https://www.gov.pl/web/energia/wiadomosci"
@@ -37,9 +37,9 @@ CONF_NOTIFICATION_TIME = "notification_time"
 CONF_NOTIFICATION_MODE = "notification_mode"
 CONF_NOTIFICATION_SERVICES = "notification_services"
 CONF_NOTIFICATION_DEVICES = "notification_devices"
+CONF_SELECTED_DEVICE = "selected_device"
 CONF_DEVICE_NAME = "device_name"
 CONF_DEVICE_ENABLED = "device_enabled"
-CONF_TEST_NOTIFICATION = "test_notification"
 
 DEVICE_SERVICE = "service"
 DEVICE_NAME = "name"

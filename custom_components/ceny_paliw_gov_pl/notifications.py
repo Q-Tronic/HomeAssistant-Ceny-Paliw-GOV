@@ -149,7 +149,7 @@ async def async_send_mobile_notification(
     title: str,
     message: str,
 ) -> None:
-    """Send a high priority mobile_app notification."""
+    """Send a mobile_app notification."""
     if not target.startswith("notify.mobile_app_"):
         raise ValueError(f"Nieobsługiwany cel powiadomień: {target}")
 
@@ -177,13 +177,30 @@ async def async_send_test_notification(
     """Send a test notification to one configured phone."""
     message = (
         "Test powiadomienia z integracji Ceny paliw GOV.PL.\n\n"
-        f"Urządzenie: {display_name}\n"
-        "Tryb wysyłki: ttl 0, priority high."
+        f"Urządzenie: {display_name}"
     )
     await async_send_mobile_notification(
         hass,
         target,
         NOTIFICATION_TEST_TITLE,
+        message,
+    )
+
+
+async def async_send_current_notification(
+    hass: HomeAssistant,
+    target: str,
+    data: FuelPriceData,
+) -> None:
+    """Send the same content used by the normal daily notification."""
+    if data.tomorrow is None:
+        message = build_not_published_notification(data)
+    else:
+        message = build_price_notification(data)
+    await async_send_mobile_notification(
+        hass,
+        target,
+        NOTIFICATION_TITLE,
         message,
     )
 

@@ -14,38 +14,94 @@
   "options": {
     "step": {
       "init": {
-        "title": "Fuel price notifications",
-        "description": "Configure daily notifications. Select phones registered by the Home Assistant Companion app. You can edit the list later.",
+        "title": "Ceny paliw GOV.PL configuration",
+        "description": "Choose a configuration section. Changes are applied after selecting Save and finish.",
+        "menu_options": {
+          "notification_settings": "Notification settings",
+          "phones": "Phones",
+          "save": "Save and finish"
+        },
+        "menu_option_descriptions": {
+          "notification_settings": "Enable notifications, set the time and delivery mode.",
+          "phones": "Add, remove and configure phones individually.",
+          "save": "Save all changes and reload the integration."
+        }
+      },
+      "notification_settings": {
+        "title": "Notification settings",
+        "description": "Configure the general rules for daily notifications.",
         "data": {
           "notifications_enabled": "Enable notifications",
           "notification_time": "Notification time",
-          "notification_mode": "Delivery mode",
+          "notification_mode": "Delivery mode"
+        },
+        "data_description": {
+          "notifications_enabled": "Master switch for all automatic notifications from this integration.",
+          "notification_time": "Time used by delivery modes with scheduled sending.",
+          "notification_mode": "By default the integration sends at the selected time. If tomorrow's prices are not available yet, it waits and sends immediately after publication is detected."
+        }
+      },
+      "phones": {
+        "title": "Phones",
+        "description": "Configured phones: {count}. Each phone can be edited separately.",
+        "menu_options": {
+          "phone_list": "Add or remove phones",
+          "choose_phone": "Configure a selected phone",
+          "init": "Back to main menu"
+        },
+        "menu_option_descriptions": {
+          "phone_list": "Edit the list of phones available to this integration.",
+          "choose_phone": "Choose one phone and open its individual submenu.",
+          "init": "Return to the main configuration menu."
+        }
+      },
+      "phone_list": {
+        "title": "Phone list",
+        "description": "Select phones registered by the Home Assistant Companion app. You can edit this list later.",
+        "data": {
           "notification_services": "Phones to notify"
         },
         "data_description": {
-          "notifications_enabled": "Master switch for all notifications from this integration.",
-          "notification_time": "Time used by delivery modes with scheduled sending.",
-          "notification_mode": "By default the integration sends at the selected time. If tomorrow's prices are not available yet, it waits and sends immediately after publication is detected.",
-          "notification_services": "Select one or more phones. Each phone is configured separately in the next step."
+          "notification_services": "Adding a phone does not force automatic delivery. Each phone has its own switch in its submenu."
         }
       },
-      "device": {
-        "title": "Phone {position}/{count}: {device}",
-        "description": "Home Assistant target: `{target}`. You can set a custom name, disable the phone without removing it from the list, and send a test while saving.",
+      "choose_phone": {
+        "title": "Choose phone",
+        "description": "Choose the phone you want to configure.",
+        "data": {
+          "selected_device": "Phone"
+        }
+      },
+      "phone_menu": {
+        "title": "Phone: {device}",
+        "description": "Home Assistant target: `{target}`. Automatic delivery to this phone: {enabled}. Last action: {status}",
+        "menu_options": {
+          "phone_settings": "Phone settings",
+          "phone_test": "Send test",
+          "phone_send_now": "Send notification now",
+          "choose_phone": "Choose another phone",
+          "phones": "Back to phone menu"
+        },
+        "menu_option_descriptions": {
+          "phone_settings": "Change the phone name and enable or disable automatic notifications.",
+          "phone_test": "Immediately send a short test notification only to this phone.",
+          "phone_send_now": "Immediately send this phone a message in the same format as the daily notification.",
+          "choose_phone": "Go directly to another phone configuration.",
+          "phones": "Return to phone list management."
+        }
+      },
+      "phone_settings": {
+        "title": "Phone settings: {device}",
+        "description": "Home Assistant target: `{target}`. Manual test and current notification actions are available in the phone submenu.",
         "data": {
           "device_name": "Phone name",
-          "device_enabled": "Send to this phone",
-          "test_notification": "Send a test notification now"
+          "device_enabled": "Send automatic notifications to this phone"
         },
         "data_description": {
           "device_name": "Enter a custom name or keep the default name.",
-          "device_enabled": "When disabled, the phone stays on the list but is skipped for daily notifications.",
-          "test_notification": "When selected, the integration sends a test only to this phone using `ttl: 0` and `priority: high`."
+          "device_enabled": "When disabled, the phone remains on the list but is skipped for daily automatic notifications."
         }
       }
-    },
-    "error": {
-      "test_notification_failed": "The test notification could not be sent. Check that the selected phone has an active notify.mobile_app service."
     }
   },
   "selector": {

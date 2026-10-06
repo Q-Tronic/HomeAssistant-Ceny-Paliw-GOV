@@ -37,7 +37,7 @@ Dodatkowe atrybuty zawierają między innymi cenę liczbową, różnicę w grosz
 
 ## Powiadomienia na telefon
 
-Od wersji `1.1.0` integracja ma własną konfigurację powiadomień.
+Od wersji `1.2.0` konfiguracja powiadomień jest podzielona na czytelne menu i podmenu.
 
 Po dodaniu integracji otwórz:
 
@@ -45,15 +45,26 @@ Po dodaniu integracji otwórz:
 Ustawienia > Urządzenia i usługi > Ceny paliw GOV.PL > Konfiguruj
 ```
 
-Możesz ustawić:
+Menu główne zawiera:
 
-- globalne włączenie lub wyłączenie powiadomień,
-- godzinę wysyłki,
-- tryb wysyłki,
-- jeden lub kilka telefonów,
-- własną nazwę każdego telefonu,
-- osobne włączenie lub wyłączenie każdego telefonu bez usuwania go z listy,
-- test powiadomienia osobno dla każdego telefonu.
+- `Ustawienia powiadomień`, globalne włączenie powiadomień, godzina oraz tryb wysyłki,
+- `Telefony`, zarządzanie listą urządzeń i konfiguracja każdego telefonu osobno,
+- `Zapisz i zakończ`, zapis wszystkich zmian i przeładowanie integracji.
+
+### Telefony
+
+W menu `Telefony` możesz dodać albo usunąć urządzenia z listy. Następnie wybierasz jeden telefon i przechodzisz do jego własnego podmenu.
+
+Dla każdego telefonu można:
+
+- ustawić własną nazwę albo pozostawić nazwę domyślną,
+- włączyć lub wyłączyć automatyczne codzienne powiadomienia bez usuwania telefonu z listy,
+- użyć `Wyślij test`, aby natychmiast wysłać krótką wiadomość testową,
+- użyć `Wyślij powiadomienie teraz`, aby natychmiast wysłać wiadomość w takim samym formacie jak codzienne powiadomienie.
+
+Ręczne wysłanie działa niezależnie od przełącznika automatycznych powiadomień dla telefonu.
+
+Jeżeli przy `Wyślij powiadomienie teraz` ceny na jutro są już dostępne, wysyłane są ceny dzisiejsze, jutrzejsze i zmiana. Jeżeli ceny na jutro nie zostały jeszcze opublikowane, wysyłana jest informacja o braku publikacji.
 
 Telefony są pobierane z usług Home Assistant Companion o nazwach `notify.mobile_app_*`.
 
@@ -84,16 +95,6 @@ PB95: dziś 6,79 zł/l, jutro 6,86 zł/l, drożej o 7gr
 PB98: dziś 7,54 zł/l, jutro 7,49 zł/l, taniej o 5gr
 ON: dziś 7,82 zł/l, jutro 7,82 zł/l, bez zmian
 ```
-
-Każde powiadomienie, również testowe, jest wysyłane z danymi:
-
-```yaml
-data:
-  ttl: 0
-  priority: high
-```
-
-Na Androidzie ustawienia te wymuszają wysoką priorytetyzację dostarczenia przez Home Assistant Companion.
 
 ## Źródło danych
 

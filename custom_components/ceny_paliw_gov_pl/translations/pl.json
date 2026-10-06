@@ -14,38 +14,94 @@
   "options": {
     "step": {
       "init": {
-        "title": "Powiadomienia o cenach paliw",
-        "description": "Skonfiguruj codzienne powiadomienia. Wybierz telefony z aplikacji Home Assistant Companion. Listę możesz później dowolnie edytować.",
+        "title": "Konfiguracja Ceny paliw GOV.PL",
+        "description": "Wybierz sekcję konfiguracji. Zmiany zostaną zastosowane po wybraniu opcji Zapisz i zakończ.",
+        "menu_options": {
+          "notification_settings": "Ustawienia powiadomień",
+          "phones": "Telefony",
+          "save": "Zapisz i zakończ"
+        },
+        "menu_option_descriptions": {
+          "notification_settings": "Włącz powiadomienia, ustaw godzinę oraz sposób wysyłki.",
+          "phones": "Dodawaj, usuwaj i konfiguruj telefony pojedynczo.",
+          "save": "Zapisz wszystkie zmiany i przeładuj integrację."
+        }
+      },
+      "notification_settings": {
+        "title": "Ustawienia powiadomień",
+        "description": "Ustaw ogólne zasady codziennych powiadomień.",
         "data": {
           "notifications_enabled": "Włącz powiadomienia",
           "notification_time": "Godzina powiadomienia",
-          "notification_mode": "Tryb wysyłki",
+          "notification_mode": "Tryb wysyłki"
+        },
+        "data_description": {
+          "notifications_enabled": "Główny przełącznik wszystkich automatycznych powiadomień tej integracji.",
+          "notification_time": "Godzina używana w trybach z zaplanowaną wysyłką.",
+          "notification_mode": "Domyślnie integracja wysyła o ustawionej godzinie, a gdy cen jeszcze nie ma, czeka na publikację i wysyła je od razu po wykryciu."
+        }
+      },
+      "phones": {
+        "title": "Telefony",
+        "description": "Skonfigurowane telefony: {count}. Każdy telefon możesz edytować osobno.",
+        "menu_options": {
+          "phone_list": "Dodaj lub usuń telefony",
+          "choose_phone": "Konfiguruj wybrany telefon",
+          "init": "Wróć do menu głównego"
+        },
+        "menu_option_descriptions": {
+          "phone_list": "Edytuj listę telefonów dostępnych dla tej integracji.",
+          "choose_phone": "Wybierz jeden telefon i otwórz jego osobne podmenu.",
+          "init": "Wróć do głównego menu konfiguracji."
+        }
+      },
+      "phone_list": {
+        "title": "Lista telefonów",
+        "description": "Wybierz telefony zarejestrowane przez aplikację Home Assistant Companion. Możesz później dowolnie zmieniać tę listę.",
+        "data": {
           "notification_services": "Telefony do powiadomień"
         },
         "data_description": {
-          "notifications_enabled": "Główny przełącznik wszystkich powiadomień tej integracji.",
-          "notification_time": "Godzina używana w trybach z zaplanowaną wysyłką.",
-          "notification_mode": "Domyślnie integracja wysyła o ustawionej godzinie, a gdy cen jeszcze nie ma, czeka na publikację i wysyła je od razu po wykryciu.",
-          "notification_services": "Możesz zaznaczyć jeden lub kilka telefonów. Każdy telefon skonfigurujesz osobno w kolejnym kroku."
+          "notification_services": "Dodanie telefonu nie wymusza automatycznej wysyłki. Każdy telefon ma osobny przełącznik w swoim podmenu."
         }
       },
-      "device": {
-        "title": "Telefon {position}/{count}: {device}",
-        "description": "Cel Home Assistant: `{target}`. Możesz nadać własną nazwę, wyłączyć ten telefon bez usuwania go z listy oraz wysłać test podczas zapisywania.",
+      "choose_phone": {
+        "title": "Wybierz telefon",
+        "description": "Wybierz telefon, który chcesz skonfigurować.",
+        "data": {
+          "selected_device": "Telefon"
+        }
+      },
+      "phone_menu": {
+        "title": "Telefon: {device}",
+        "description": "Cel Home Assistant: `{target}`. Automatyczna wysyłka na ten telefon: {enabled}. Ostatnia akcja: {status}",
+        "menu_options": {
+          "phone_settings": "Ustawienia telefonu",
+          "phone_test": "Wyślij test",
+          "phone_send_now": "Wyślij powiadomienie teraz",
+          "choose_phone": "Wybierz inny telefon",
+          "phones": "Wróć do menu telefonów"
+        },
+        "menu_option_descriptions": {
+          "phone_settings": "Zmień nazwę telefonu oraz włącz lub wyłącz automatyczne powiadomienia.",
+          "phone_test": "Natychmiast wyślij krótkie powiadomienie testowe tylko na ten telefon.",
+          "phone_send_now": "Natychmiast wyślij na ten telefon wiadomość w takim samym formacie jak codzienne powiadomienie.",
+          "choose_phone": "Przejdź bezpośrednio do konfiguracji innego telefonu.",
+          "phones": "Wróć do zarządzania listą telefonów."
+        }
+      },
+      "phone_settings": {
+        "title": "Ustawienia telefonu: {device}",
+        "description": "Cel Home Assistant: `{target}`. Ręczne wysłanie testu lub bieżącego powiadomienia jest dostępne w podmenu telefonu.",
         "data": {
           "device_name": "Nazwa telefonu",
-          "device_enabled": "Wysyłaj na ten telefon",
-          "test_notification": "Wyślij test powiadomienia teraz"
+          "device_enabled": "Wysyłaj automatyczne powiadomienia na ten telefon"
         },
         "data_description": {
           "device_name": "Wpisz własną nazwę albo pozostaw nazwę domyślną.",
-          "device_enabled": "Wyłączenie zachowuje telefon na liście, ale pomija go przy codziennych powiadomieniach.",
-          "test_notification": "Po zaznaczeniu integracja wyśle test tylko na ten telefon z `ttl: 0` i `priority: high`."
+          "device_enabled": "Wyłączenie zachowuje telefon na liście, ale pomija go przy codziennych automatycznych powiadomieniach."
         }
       }
-    },
-    "error": {
-      "test_notification_failed": "Nie udało się wysłać testowego powiadomienia. Sprawdź, czy wybrany telefon ma aktywną usługę notify.mobile_app."
     }
   },
   "selector": {

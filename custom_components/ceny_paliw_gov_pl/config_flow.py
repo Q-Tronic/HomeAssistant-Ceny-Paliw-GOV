@@ -27,7 +27,7 @@ from .const import (
     CONF_NOTIFICATION_SERVICES,
     CONF_NOTIFICATION_TIME,
     CONF_NOTIFICATIONS_ENABLED,
-    CONF_TEST_NOTIFICATION,
+    CONF_SELECTED_DEVICE,
     DEFAULT_NOTIFICATION_MODE,
     DEFAULT_NOTIFICATION_TIME,
     DEFAULT_NOTIFICATIONS_ENABLED,
@@ -39,6 +39,7 @@ from .const import (
     NOTIFICATION_MODES,
 )
 from .notifications import (
+    async_send_current_notification,
     async_send_test_notification,
     default_device_name,
     mobile_app_notify_targets,
@@ -73,26 +74,48 @@ class FuelPricesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
-    """Manage notification options."""
+    """Manage notification options using a menu based interface."""
 
     def __init__(self) -> None:
-        self._pending_options: dict[str, Any] = {}
-        self._selected_services: list[str] = []
-        self._device_index = 0
-        self._devices: list[dict[str, Any]] = []
+        self._working_options: dict[str, Any] | None = None
+        self._selected_target: str | None = None
+        self._phone_status = ""
+
+    def _ensure_working_options(self) -> dict[str, Any]:
+        if self._working_options is None:
+            self._working_options = dict(self.config_entry.options)
+            self._working_options.setdefault(
+                CONF_NOTIFICATIONS_ENABLED,
+                DEFAULT_NOTIFICATIONS_ENABLED,
+            )
+            self._working_options.setdefault(
+                CONF_NOTIFICATION_TIME,
+                DEFAULT_NOTIFICATION_TIME,
+            )
+            self._working_options.setdefault(
+                CONF_NOTIFICATION_MODE,
+                DEFAULT_NOTIFICATION_MODE,
+            )
+            devices = self._working_options.get(CONF_NOTIFICATION_DEVICES, [])
+            if not isinstance(devices, list):
+                devices = []
+            self._working_options[CONF_NOTIFICATION_DEVICES] = [
+                dict(item) for item in devices if isinstance(item, dict)
+            ]
+        return self._working_options
 
     def _existing_devices(self) -> dict[str, dict[str, Any]]:
-        raw = self.config_entry.options.get(CONF_NOTIFICATION_DEVICES, [])
+        options = self._ensure_working_options()
+        raw = options.get(CONF_NOTIFICATION_DEVICES, [])
         result: dict[str, dict[str, Any]] = {}
-        if not isinstance(raw, list):
-            return result
         for item in raw:
-            if not isinstance(item, dict):
-                continue
             target = item.get(DEVICE_SERVICE)
             if isinstance(target, str):
                 result[target] = dict(item)
         return result
+
+    def _set_devices(self, devices: list[dict[str, Any]]) -> None:
+        self._ensure_working_options()[CONF_NOTIFICATION_DEVICES] = devices
 
     def _target_options(self) -> list[dict[str, str]]:
         options = mobile_app_notify_targets(self.hass)
@@ -110,50 +133,78 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
         options.sort(key=lambda item: item["label"].casefold())
         return options
 
+    def _configured_phone_options(self) -> list[dict[str, str]]:
+        options: list[dict[str, str]] = []
+        for target, device in self._existing_devices().items():
+            name = str(device.get(DEVICE_NAME) or default_device_name(target))
+            enabled = bool(device.get(DEVICE_ENABLED, True))
+            suffix = "" if enabled else " (wyłączony)"
+            options.append(
+                {
+                    "value": target,
+                    "label": f"{name}{suffix}",
+                }
+            )
+        options.sort(key=lambda item: item["label"].casefold())
+        return options
+
+    def _selected_device(self) -> dict[str, Any] | None:
+        if self._selected_target is None:
+            return None
+        return self._existing_devices().get(self._selected_target)
+
+    def _update_selected_device(self, *, name: str, enabled: bool) -> None:
+        if self._selected_target is None:
+            return
+        devices = self._existing_devices()
+        devices[self._selected_target] = {
+            DEVICE_SERVICE: self._selected_target,
+            DEVICE_NAME: name,
+            DEVICE_ENABLED: enabled,
+        }
+        self._set_devices(list(devices.values()))
+
     async def async_step_init(
         self,
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
-        """Configure global notification settings and selected phones."""
-        existing_devices = self._existing_devices()
-        existing_targets = list(existing_devices)
+        """Show the main options menu."""
+        self._ensure_working_options()
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=["notification_settings", "phones", "save"],
+        )
+
+    async def async_step_notification_settings(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Configure global notification settings."""
+        options = self._ensure_working_options()
 
         if user_input is not None:
-            self._selected_services = list(
-                user_input.get(CONF_NOTIFICATION_SERVICES, [])
+            options[CONF_NOTIFICATIONS_ENABLED] = bool(
+                user_input.get(
+                    CONF_NOTIFICATIONS_ENABLED,
+                    DEFAULT_NOTIFICATIONS_ENABLED,
+                )
             )
-            self._pending_options = {
-                CONF_NOTIFICATIONS_ENABLED: bool(
-                    user_input.get(
-                        CONF_NOTIFICATIONS_ENABLED,
-                        DEFAULT_NOTIFICATIONS_ENABLED,
-                    )
-                ),
-                CONF_NOTIFICATION_TIME: str(
-                    user_input.get(CONF_NOTIFICATION_TIME, DEFAULT_NOTIFICATION_TIME)
-                ),
-                CONF_NOTIFICATION_MODE: str(
-                    user_input.get(CONF_NOTIFICATION_MODE, DEFAULT_NOTIFICATION_MODE)
-                ),
-            }
-            self._devices = []
-            self._device_index = 0
+            options[CONF_NOTIFICATION_TIME] = str(
+                user_input.get(CONF_NOTIFICATION_TIME, DEFAULT_NOTIFICATION_TIME)
+            )
+            options[CONF_NOTIFICATION_MODE] = str(
+                user_input.get(CONF_NOTIFICATION_MODE, DEFAULT_NOTIFICATION_MODE)
+            )
+            return await self.async_step_init()
 
-            if not self._selected_services:
-                self._pending_options[CONF_NOTIFICATION_DEVICES] = []
-                return self.async_create_entry(title="", data=self._pending_options)
-
-            return await self.async_step_device()
-
-        target_options = self._target_options()
         return self.async_show_form(
-            step_id="init",
+            step_id="notification_settings",
             data_schema=probatio.Schema(
                 {
                     probatio.Optional(
                         CONF_NOTIFICATIONS_ENABLED,
                         description={
-                            "suggested_value": self.config_entry.options.get(
+                            "suggested_value": options.get(
                                 CONF_NOTIFICATIONS_ENABLED,
                                 DEFAULT_NOTIFICATIONS_ENABLED,
                             )
@@ -162,7 +213,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                     probatio.Optional(
                         CONF_NOTIFICATION_TIME,
                         description={
-                            "suggested_value": self.config_entry.options.get(
+                            "suggested_value": options.get(
                                 CONF_NOTIFICATION_TIME,
                                 DEFAULT_NOTIFICATION_TIME,
                             )
@@ -171,7 +222,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                     probatio.Optional(
                         CONF_NOTIFICATION_MODE,
                         description={
-                            "suggested_value": self.config_entry.options.get(
+                            "suggested_value": options.get(
                                 CONF_NOTIFICATION_MODE,
                                 DEFAULT_NOTIFICATION_MODE,
                             )
@@ -183,72 +234,159 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                             translation_key="notification_mode",
                         )
                     ),
-                    probatio.Optional(
-                        CONF_NOTIFICATION_SERVICES,
-                        description={"suggested_value": existing_targets},
-                    ): SelectSelector(
-                        SelectSelectorConfig(
-                            options=target_options,
-                            multiple=True,
-                            mode=SelectSelectorMode.DROPDOWN,
-                        )
-                    ),
                 }
             ),
         )
 
-    async def async_step_device(
+    async def async_step_phones(
         self,
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
-        """Configure one phone at a time."""
-        target = self._selected_services[self._device_index]
-        existing = self._existing_devices().get(target, {})
-        default_name = str(existing.get(DEVICE_NAME) or default_device_name(target))
-        default_enabled = bool(existing.get(DEVICE_ENABLED, True))
-        errors: dict[str, str] = {}
+        """Show phone management menu."""
+        devices = self._existing_devices()
+        menu_options = ["phone_list"]
+        if devices:
+            menu_options.append("choose_phone")
+        menu_options.append("init")
+        return self.async_show_menu(
+            step_id="phones",
+            menu_options=menu_options,
+            description_placeholders={"count": str(len(devices))},
+        )
+
+    async def async_step_phone_list(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Add or remove phones from the notification list."""
+        devices = self._existing_devices()
+        selected_targets = list(devices)
+
+        if user_input is not None:
+            selected_targets = list(user_input.get(CONF_NOTIFICATION_SERVICES, []))
+            updated_devices: list[dict[str, Any]] = []
+            for target in selected_targets:
+                current = devices.get(target)
+                if current is None:
+                    current = {
+                        DEVICE_SERVICE: target,
+                        DEVICE_NAME: default_device_name(target),
+                        DEVICE_ENABLED: True,
+                    }
+                updated_devices.append(dict(current))
+            self._set_devices(updated_devices)
+            if self._selected_target not in selected_targets:
+                self._selected_target = None
+            return await self.async_step_phones()
+
+        return self.async_show_form(
+            step_id="phone_list",
+            data_schema=probatio.Schema(
+                {
+                    probatio.Optional(
+                        CONF_NOTIFICATION_SERVICES,
+                        description={"suggested_value": selected_targets},
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=self._target_options(),
+                            multiple=True,
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            ),
+        )
+
+    async def async_step_choose_phone(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Choose a phone to configure."""
+        phone_options = self._configured_phone_options()
+        if not phone_options:
+            return await self.async_step_phones()
+
+        if user_input is not None:
+            target = str(user_input.get(CONF_SELECTED_DEVICE, ""))
+            if target in self._existing_devices():
+                self._selected_target = target
+                self._phone_status = ""
+                return await self.async_step_phone_menu()
+
+        suggested = self._selected_target
+        if suggested not in self._existing_devices():
+            suggested = phone_options[0]["value"]
+
+        return self.async_show_form(
+            step_id="choose_phone",
+            data_schema=probatio.Schema(
+                {
+                    probatio.Required(
+                        CONF_SELECTED_DEVICE,
+                        description={"suggested_value": suggested},
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=phone_options,
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            ),
+        )
+
+    async def async_step_phone_menu(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Show actions for one selected phone."""
+        device = self._selected_device()
+        if device is None or self._selected_target is None:
+            return await self.async_step_choose_phone()
+
+        name = str(device.get(DEVICE_NAME) or default_device_name(self._selected_target))
+        enabled = bool(device.get(DEVICE_ENABLED, True))
+        return self.async_show_menu(
+            step_id="phone_menu",
+            menu_options=[
+                "phone_settings",
+                "phone_test",
+                "phone_send_now",
+                "choose_phone",
+                "phones",
+            ],
+            description_placeholders={
+                "device": name,
+                "target": self._selected_target,
+                "enabled": "tak" if enabled else "nie",
+                "status": self._phone_status or "-",
+            },
+        )
+
+    async def async_step_phone_settings(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Edit one phone."""
+        device = self._selected_device()
+        if device is None or self._selected_target is None:
+            return await self.async_step_choose_phone()
+
+        default_name = str(
+            device.get(DEVICE_NAME) or default_device_name(self._selected_target)
+        )
+        default_enabled = bool(device.get(DEVICE_ENABLED, True))
 
         if user_input is not None:
             display_name = str(user_input.get(CONF_DEVICE_NAME) or default_name).strip()
             if not display_name:
-                display_name = default_device_name(target)
+                display_name = default_device_name(self._selected_target)
             enabled = bool(user_input.get(CONF_DEVICE_ENABLED, True))
-
-            if user_input.get(CONF_TEST_NOTIFICATION, False):
-                try:
-                    await async_send_test_notification(
-                        self.hass,
-                        target,
-                        display_name,
-                    )
-                except Exception:  # noqa: BLE001
-                    _LOGGER.exception(
-                        "Nie udało się wysłać testowego powiadomienia na %s",
-                        target,
-                    )
-                    errors["base"] = "test_notification_failed"
-
-            if errors:
-                default_name = display_name
-                default_enabled = enabled
-
-            if not errors:
-                self._devices.append(
-                    {
-                        DEVICE_SERVICE: target,
-                        DEVICE_NAME: display_name,
-                        DEVICE_ENABLED: enabled,
-                    }
-                )
-                self._device_index += 1
-                if self._device_index < len(self._selected_services):
-                    return await self.async_step_device()
-
-                self._pending_options[CONF_NOTIFICATION_DEVICES] = self._devices
-                return self.async_create_entry(title="", data=self._pending_options)
+            self._update_selected_device(name=display_name, enabled=enabled)
+            self._phone_status = "✓"
+            return await self.async_step_phone_menu()
 
         return self.async_show_form(
-            step_id="device",
+            step_id="phone_settings",
             data_schema=probatio.Schema(
                 {
                     probatio.Optional(
@@ -259,17 +397,76 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                         CONF_DEVICE_ENABLED,
                         description={"suggested_value": default_enabled},
                     ): BooleanSelector(),
-                    probatio.Optional(
-                        CONF_TEST_NOTIFICATION,
-                        description={"suggested_value": False},
-                    ): BooleanSelector(),
                 }
             ),
-            errors=errors,
             description_placeholders={
                 "device": default_name,
-                "target": target,
-                "position": str(self._device_index + 1),
-                "count": str(len(self._selected_services)),
+                "target": self._selected_target,
             },
+        )
+
+    async def async_step_phone_test(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Immediately send a test notification to the selected phone."""
+        device = self._selected_device()
+        if device is None or self._selected_target is None:
+            return await self.async_step_choose_phone()
+
+        display_name = str(
+            device.get(DEVICE_NAME) or default_device_name(self._selected_target)
+        )
+        try:
+            await async_send_test_notification(
+                self.hass,
+                self._selected_target,
+                display_name,
+            )
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception(
+                "Nie udało się wysłać testowego powiadomienia na %s",
+                self._selected_target,
+            )
+            self._phone_status = "⚠"
+        else:
+            self._phone_status = "✓"
+        return await self.async_step_phone_menu()
+
+    async def async_step_phone_send_now(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Immediately send the normal daily notification to the selected phone."""
+        device = self._selected_device()
+        if device is None or self._selected_target is None:
+            return await self.async_step_choose_phone()
+
+        try:
+            runtime_data = self.config_entry.runtime_data
+            coordinator = runtime_data.coordinator
+            await coordinator.async_request_refresh()
+            await async_send_current_notification(
+                self.hass,
+                self._selected_target,
+                coordinator.data,
+            )
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception(
+                "Nie udało się wysłać bieżącego powiadomienia na %s",
+                self._selected_target,
+            )
+            self._phone_status = "⚠"
+        else:
+            self._phone_status = "✓"
+        return await self.async_step_phone_menu()
+
+    async def async_step_save(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Save all changes and reload the integration."""
+        return self.async_create_entry(
+            title="",
+            data=self._ensure_working_options(),
         )

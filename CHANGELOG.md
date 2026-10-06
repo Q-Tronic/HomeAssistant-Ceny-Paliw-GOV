@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.2.0
+
+- Przebudowano konfigurację na menu główne i podmenu.
+- Dodano osobną sekcję ustawień powiadomień.
+- Dodano osobne menu zarządzania telefonami.
+- Konfiguracja telefonów nie jest już wykonywana kolejno jeden po drugim.
+- Dodano wybór konkretnego telefonu przed wejściem do jego ustawień.
+- Każdy telefon ma własne podmenu.
+- Dodano natychmiastową akcję `Wyślij test` dla wybranego telefonu.
+- Dodano natychmiastową akcję `Wyślij powiadomienie teraz` dla wybranego telefonu.
+- `Wyślij powiadomienie teraz` używa tego samego formatu wiadomości co codzienne powiadomienie.
+- Usunięto przełącznik testowego powiadomienia z formularza ustawień telefonu.
+- Usunięto techniczne informacje o sposobie dostarczania z treści testu i interfejsu konfiguracji.
+- Zachowano własną nazwę telefonu oraz osobne włączanie i wyłączanie automatycznych powiadomień.
+- Dodano przycisk `Zapisz i zakończ`, który zapisuje wszystkie zmiany i przeładowuje integrację.
+
 ## 1.1.0
 
 - Dodano konfigurowalne powiadomienia na telefony z Home Assistant Companion.
@@ -12,7 +28,6 @@
 - Dodano trzy tryby wysyłki.
 - Tryb domyślny wysyła o ustawionej godzinie, a jeżeli ceny na jutro nie są jeszcze opublikowane, czeka i wysyła je natychmiast po wykryciu publikacji.
 - Powiadomienie zawiera ceny PB95, PB98 i ON na dzisiaj i jutro oraz informację `drożej o Xgr`, `taniej o Xgr` albo `bez zmian`.
-- Wszystkie powiadomienia mobilne używają `ttl: 0` i `priority: high`.
 - Dodano pamiętanie dostarczenia osobno dla każdego telefonu, aby przy ponowieniu nie dublować wiadomości na urządzeniach, które już ją otrzymały.
 - Dodano konfigurację powiadomień w Options Flow Home Assistanta.
 - Dodano `country: PL` do `hacs.json`.
