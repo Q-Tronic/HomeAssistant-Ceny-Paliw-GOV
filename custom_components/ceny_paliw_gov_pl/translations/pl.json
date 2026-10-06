@@ -10,5 +10,51 @@
     "abort": {
       "single_instance_allowed": "Ta integracja może być skonfigurowana tylko raz."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Powiadomienia o cenach paliw",
+        "description": "Skonfiguruj codzienne powiadomienia. Wybierz telefony z aplikacji Home Assistant Companion. Listę możesz później dowolnie edytować.",
+        "data": {
+          "notifications_enabled": "Włącz powiadomienia",
+          "notification_time": "Godzina powiadomienia",
+          "notification_mode": "Tryb wysyłki",
+          "notification_services": "Telefony do powiadomień"
+        },
+        "data_description": {
+          "notifications_enabled": "Główny przełącznik wszystkich powiadomień tej integracji.",
+          "notification_time": "Godzina używana w trybach z zaplanowaną wysyłką.",
+          "notification_mode": "Domyślnie integracja wysyła o ustawionej godzinie, a gdy cen jeszcze nie ma, czeka na publikację i wysyła je od razu po wykryciu.",
+          "notification_services": "Możesz zaznaczyć jeden lub kilka telefonów. Każdy telefon skonfigurujesz osobno w kolejnym kroku."
+        }
+      },
+      "device": {
+        "title": "Telefon {position}/{count}: {device}",
+        "description": "Cel Home Assistant: `{target}`. Możesz nadać własną nazwę, wyłączyć ten telefon bez usuwania go z listy oraz wysłać test podczas zapisywania.",
+        "data": {
+          "device_name": "Nazwa telefonu",
+          "device_enabled": "Wysyłaj na ten telefon",
+          "test_notification": "Wyślij test powiadomienia teraz"
+        },
+        "data_description": {
+          "device_name": "Wpisz własną nazwę albo pozostaw nazwę domyślną.",
+          "device_enabled": "Wyłączenie zachowuje telefon na liście, ale pomija go przy codziennych powiadomieniach.",
+          "test_notification": "Po zaznaczeniu integracja wyśle test tylko na ten telefon z `ttl: 0` i `priority: high`."
+        }
+      }
+    },
+    "error": {
+      "test_notification_failed": "Nie udało się wysłać testowego powiadomienia. Sprawdź, czy wybrany telefon ma aktywną usługę notify.mobile_app."
+    }
+  },
+  "selector": {
+    "notification_mode": {
+      "options": {
+        "scheduled": "O ustawionej godzinie",
+        "on_publication": "Natychmiast po publikacji nowych cen",
+        "scheduled_then_publication": "O ustawionej godzinie, a jeśli brak cen, od razu po publikacji (domyślne)"
+      }
+    }
   }
 }

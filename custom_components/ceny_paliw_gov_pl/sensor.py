@@ -127,7 +127,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up fuel price sensors from a config entry."""
-    coordinator: FuelPriceCoordinator = entry.runtime_data
+    coordinator: FuelPriceCoordinator = entry.runtime_data.coordinator
     async_add_entities(
         FuelPriceSensor(coordinator, description) for description in SENSORS
     )

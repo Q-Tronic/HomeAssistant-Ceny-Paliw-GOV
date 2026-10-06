@@ -1,14 +1,60 @@
 {
-  "title": "Ceny paliw GOV.PL",
+  "title": "Polish fuel prices GOV.PL",
   "config": {
     "step": {
       "user": {
-        "title": "Ceny paliw GOV.PL",
-        "description": "Dodaj integrację pobierającą maksymalne ceny detaliczne paliw publikowane przez Ministerstwo Energii na gov.pl. Dane są sprawdzane automatycznie co 30 minut."
+        "title": "Polish fuel prices GOV.PL",
+        "description": "Add the integration that downloads maximum retail fuel prices published by the Polish Ministry of Energy on gov.pl. Data is checked automatically every 30 minutes."
       }
     },
     "abort": {
-      "single_instance_allowed": "Ta integracja może być skonfigurowana tylko raz."
+      "single_instance_allowed": "This integration can only be configured once."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Fuel price notifications",
+        "description": "Configure daily notifications. Select phones registered by the Home Assistant Companion app. You can edit the list later.",
+        "data": {
+          "notifications_enabled": "Enable notifications",
+          "notification_time": "Notification time",
+          "notification_mode": "Delivery mode",
+          "notification_services": "Phones to notify"
+        },
+        "data_description": {
+          "notifications_enabled": "Master switch for all notifications from this integration.",
+          "notification_time": "Time used by delivery modes with scheduled sending.",
+          "notification_mode": "By default the integration sends at the selected time. If tomorrow's prices are not available yet, it waits and sends immediately after publication is detected.",
+          "notification_services": "Select one or more phones. Each phone is configured separately in the next step."
+        }
+      },
+      "device": {
+        "title": "Phone {position}/{count}: {device}",
+        "description": "Home Assistant target: `{target}`. You can set a custom name, disable the phone without removing it from the list, and send a test while saving.",
+        "data": {
+          "device_name": "Phone name",
+          "device_enabled": "Send to this phone",
+          "test_notification": "Send a test notification now"
+        },
+        "data_description": {
+          "device_name": "Enter a custom name or keep the default name.",
+          "device_enabled": "When disabled, the phone stays on the list but is skipped for daily notifications.",
+          "test_notification": "When selected, the integration sends a test only to this phone using `ttl: 0` and `priority: high`."
+        }
+      }
+    },
+    "error": {
+      "test_notification_failed": "The test notification could not be sent. Check that the selected phone has an active notify.mobile_app service."
+    }
+  },
+  "selector": {
+    "notification_mode": {
+      "options": {
+        "scheduled": "At the configured time",
+        "on_publication": "Immediately after new prices are published",
+        "scheduled_then_publication": "At the configured time, or immediately after publication if prices are not available yet (default)"
+      }
     }
   }
 }

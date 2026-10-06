@@ -32,7 +32,7 @@ async def async_get_config_entry_diagnostics(
     entry: ConfigEntry,
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    coordinator: FuelPriceCoordinator = entry.runtime_data
+    coordinator: FuelPriceCoordinator = entry.runtime_data.coordinator
     data = coordinator.data
     return {
         "today_date": data.today_date.isoformat(),
@@ -42,4 +42,16 @@ async def async_get_config_entry_diagnostics(
         "fetched_at": data.fetched_at.isoformat(),
         "parsed_periods": data.parsed_periods,
         "last_update_success": coordinator.last_update_success,
+        "notifications_enabled": bool(entry.options.get("notifications_enabled", False)),
+        "notification_time": entry.options.get("notification_time", "18:00:00"),
+        "notification_mode": entry.options.get("notification_mode", "scheduled_then_publication"),
+        "notification_devices": [
+            {
+                "service": device.get("service"),
+                "name": device.get("name"),
+                "enabled": device.get("enabled", True),
+            }
+            for device in entry.options.get("notification_devices", [])
+            if isinstance(device, dict)
+        ],
     }
