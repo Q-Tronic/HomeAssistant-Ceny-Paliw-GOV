@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1
+
+- Naprawiono pobieranie cen weekendowych, gdy GOV.PL używa w tytule zwrotu `w dniach`, np. `10-12 października 2026 r.`.
+- Zachowano obsługę wcześniejszego wariantu `w okresie`.
+- Dodano test regresyjny na rzeczywistym formacie publikacji z 9 października 2026 r.
+
 ## 1.3.0
 
 - Dodano menu konfiguracji podzielone na harmonogram, treść, filtry, telefony i diagnostykę.

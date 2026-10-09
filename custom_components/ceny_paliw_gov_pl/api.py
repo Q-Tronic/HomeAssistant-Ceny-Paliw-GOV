@@ -194,7 +194,7 @@ _PUBLISHED_DATE_RE: Final[re.Pattern[str]] = re.compile(
 )
 
 _RANGE_SAME_MONTH_RE: Final[re.Pattern[str]] = re.compile(
-    rf"obowiązuj\w*\s+w\s+okresie\s+"
+    rf"obowiązuj\w*\s+w\s+(?:okresie|dniach)\s+"
     rf"(?P<start>\d{{1,2}})\s*[-\u2013\u2014]\s*(?P<end>\d{{1,2}})\s+"
     rf"(?P<month>{_MONTH_RE})(?:\s+(?P<year>\d{{4}}))?",
     re.IGNORECASE,
@@ -202,7 +202,7 @@ _RANGE_SAME_MONTH_RE: Final[re.Pattern[str]] = re.compile(
 
 
 _RANGE_CROSS_MONTH_RE: Final[re.Pattern[str]] = re.compile(
-    rf"obowiązuj\w*(?:\s+w\s+okresie)?\s+"
+    rf"obowiązuj\w*(?:\s+w\s+(?:okresie|dniach))?\s+"
     rf"(?P<start>\d{{1,2}})\s+(?P<start_month>{_MONTH_RE})\s*"
     rf"(?:[-\u2013\u2014]|do)\s*(?P<end>\d{{1,2}})\s+"
     rf"(?P<end_month>{_MONTH_RE})(?:\s+(?P<year>\d{{4}}))?",

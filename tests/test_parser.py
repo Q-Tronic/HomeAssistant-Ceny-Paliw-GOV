@@ -67,6 +67,22 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(periods[0].valid_from, date(2026, 6, 27))
         self.assertEqual(periods[0].valid_to, date(2026, 6, 29))
 
+    def test_weekend_range_in_days_title(self) -> None:
+        html = """
+        <html><body>
+        <div>09.10.2026</div>
+        <a href="/web/energia/maksymalna-cena-detaliczna-paliw-obowiazujaca-w-dniach-10-12-pazdziernika-2026-r">Maksymalna cena detaliczna paliw obowiązująca w dniach 10-12 października 2026 r.</a>
+        <p>Benzyna 95 - 6,97 zł/l, benzyna 98 - 7,85 zł/l, olej napędowy - 8,06 zł/l.</p>
+        </body></html>
+        """
+        periods = api.parse_news_page(html)
+        self.assertEqual(len(periods), 1)
+        self.assertEqual(periods[0].valid_from, date(2026, 10, 10))
+        self.assertEqual(periods[0].valid_to, date(2026, 10, 12))
+        self.assertEqual(periods[0].prices["pb95"], Decimal("6.97"))
+        self.assertEqual(periods[0].prices["pb98"], Decimal("7.85"))
+        self.assertEqual(periods[0].prices["on"], Decimal("8.06"))
+
     def test_cross_month_period_title(self) -> None:
         html = """
         <html><body>

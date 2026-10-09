@@ -2,7 +2,7 @@
 
 Niestandardowa integracja Home Assistant autorstwa **Q-Tronic**. Pobiera maksymalne detaliczne ceny paliw publikowane przez Ministerstwo Energii na gov.pl, tworzy encje dla cen dzisiejszych i jutrzejszych, prowadzi lokalną historię i może wysyłać powiadomienia na telefony z aplikacją Home Assistant Companion.
 
-Aktualna wersja: **1.3.0**.
+Aktualna wersja: **1.3.1**.
 
 ## Najważniejsze funkcje
 
@@ -36,6 +36,11 @@ Nie opublikowano
 ```
 
 Atrybuty encji zmiany zawierają także różnicę w złotych, groszach i procentach oraz pole `trend` o wartości `up`, `down`, `equal` albo `not_published`.
+
+## Poprawka w 1.3.1
+
+- Poprawiono wykrywanie weekendowych publikacji GOV.PL zapisanych jako `obowiązująca w dniach 10-12 października 2026 r.`.
+- Parser obsługuje teraz zarówno zwrot `w okresie`, jak i `w dniach`.
 
 ## Nowości w 1.3.0
 
