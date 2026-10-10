@@ -1,13 +1,13 @@
 # Maksymalne Ceny Paliw GOV.PL v1.6.2
 
-Poprawka kompatybilności i stabilności publicznego wydania.
+Poprawka kompatybilności, stabilności i przygotowania do szerszego publicznego wydania.
 
 Zmiany:
-- przywrócono kompatybilny import `voluptuous`, dzięki czemu Config Flow działa także na Home Assistant sprzed przejścia Core na Probatio
-- minimalna wspierana wersja Home Assistant to `2025.8.0`
-- usunięto nieużywany w custom integrations plik `strings.json`
-- poprawiono czyszczenie ostrzeżeń Repairs po usunięciu telefonu
-- wzmocniono ochronę przed podwójnym automatycznym powiadomieniem przy równoległych aktualizacjach
-- dodano Hassfest i HACS Action do walidacji repozytorium
-- dodano automatyczny test importu integracji na Home Assistant `2025.8.0` i `2026.10.1`
-- zaktualizowano README i sekcję rozwiązywania problemów
+- poprawiono kompatybilność Config Flow i ustawiono minimum Home Assistant `2025.8.0`
+- zabezpieczono Reconfigure oraz ręczne odświeżanie danych
+- wzmocniono ochronę powiadomień przed duplikatami i wyścigami oraz czyszczenie stanu usuniętych telefonów
+- poprawiono obsługę publikacji na przełomie roku i pierwszeństwo nowszych korekt w historii
+- zabezpieczono konfigurację przed zduplikowanymi wpisami tego samego telefonu
+- dodano Hassfest, HACS Action i test importu modułów na HA `2025.8.0` oraz `2026.10.1`
+- podmieniono ikonę integracji i dodano warianty 256x256 oraz 512x512 z przezroczystością
+- README otrzymało klikalny spis treści i rozszerzoną sekcję rozwiązywania problemów

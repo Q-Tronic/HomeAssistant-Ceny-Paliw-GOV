@@ -54,6 +54,7 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
+          ignore: topics
 
   compatibility:
     name: Home Assistant ${{ matrix.ha_version }}
@@ -78,7 +79,32 @@ jobs:
       - name: Zainstaluj Home Assistant
         run: python -m pip install --upgrade pip "homeassistant==${{ matrix.ha_version }}"
 
-      - name: Sprawdź import całej integracji i Config Flow
+      - name: Sprawdź import wszystkich modułów integracji
         run: |
-          python -c "import custom_components.ceny_paliw_gov_pl"
-          python -c "import custom_components.ceny_paliw_gov_pl.config_flow"
+          python - <<'PY'
+          import importlib
+
+          modules = (
+              "__init__",
+              "api",
+              "binary_sensor",
+              "button",
+              "config_flow",
+              "const",
+              "coordinator",
+              "diagnostics",
+              "history",
+              "notifications",
+              "phone_config",
+              "select",
+              "sensor",
+              "switch",
+              "time",
+          )
+          for module in modules:
+              name = "custom_components.ceny_paliw_gov_pl"
+              if module != "__init__":
+                  name = f"{name}.{module}"
+              importlib.import_module(name)
+              print(f"OK: {name}")
+          PY

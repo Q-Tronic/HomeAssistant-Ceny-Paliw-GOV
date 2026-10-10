@@ -102,20 +102,28 @@ class FuelPricesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Reconfigure integration-level source polling settings."""
         entry = self._get_reconfigure_entry()
-        current_interval = int(
-            entry.data.get(
-                CONF_UPDATE_INTERVAL_MINUTES,
-                DEFAULT_UPDATE_INTERVAL_MINUTES,
-            )
-        )
-
-        if user_input is not None:
-            interval = int(
-                user_input.get(
+        try:
+            current_interval = int(
+                entry.data.get(
                     CONF_UPDATE_INTERVAL_MINUTES,
                     DEFAULT_UPDATE_INTERVAL_MINUTES,
                 )
             )
+        except (TypeError, ValueError):
+            current_interval = DEFAULT_UPDATE_INTERVAL_MINUTES
+        if current_interval not in UPDATE_INTERVAL_MINUTES_OPTIONS:
+            current_interval = DEFAULT_UPDATE_INTERVAL_MINUTES
+
+        if user_input is not None:
+            try:
+                interval = int(
+                    user_input.get(
+                        CONF_UPDATE_INTERVAL_MINUTES,
+                        DEFAULT_UPDATE_INTERVAL_MINUTES,
+                    )
+                )
+            except (TypeError, ValueError):
+                interval = DEFAULT_UPDATE_INTERVAL_MINUTES
             if interval not in UPDATE_INTERVAL_MINUTES_OPTIONS:
                 interval = DEFAULT_UPDATE_INTERVAL_MINUTES
             return self.async_update_reload_and_abort(
@@ -688,8 +696,11 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Force an immediate data refresh."""
+        coordinator = self.config_entry.runtime_data.coordinator
         try:
-            await self.config_entry.runtime_data.coordinator.async_request_refresh()
+            await coordinator.async_request_refresh()
+            if not coordinator.last_update_success:
+                raise RuntimeError("Nie udało się odświeżyć cen")
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Ręczne sprawdzenie cen nie powiodło się")
             self._diagnostic_status = "Błąd sprawdzania danych"

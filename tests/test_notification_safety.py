@@ -26,6 +26,27 @@ class NotificationSafetyTests(unittest.TestCase):
         lock_source = ast.unparse(lock_blocks[0])
         self.assertIn("automatic and self._is_delivered(target, device)", lock_source)
 
+
+    def test_automatic_noop_does_not_overwrite_send_status(self) -> None:
+        source = MODULE.read_text(encoding="utf-8")
+        guard = "if automatic and not attempted_targets and not filtered:"
+        self.assertIn(guard, source)
+        self.assertLess(source.index(guard), source.index("self.last_send_at = sent_at"))
+
+    def test_removed_phone_state_is_pruned(self) -> None:
+        source = MODULE.read_text(encoding="utf-8")
+        self.assertIn("def _prune_removed_targets_from_state", source)
+        for key in (
+            "phone_status",
+            "phone_last_sent_at",
+            "delivered_publications",
+            "delivered_source_publications",
+            "notified_services",
+            "waiting_services",
+        ):
+            self.assertIn(f'"{key}"', source)
+        self.assertGreaterEqual(source.count("self._prune_removed_targets_from_state()"), 2)
+
     def test_target_repair_ids_are_persisted_for_cleanup(self) -> None:
         source = MODULE.read_text(encoding="utf-8")
         self.assertIn('self._state["target_issue_ids"] = sorted(current_issue_ids)', source)

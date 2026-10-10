@@ -58,6 +58,21 @@ class PhoneConfigTests(unittest.TestCase):
         self.assertEqual(phone_config.normalize_target_selection(None), [])
         self.assertEqual(phone_config.normalize_target_selection(123), [])
 
+    def test_duplicate_device_targets_are_collapsed(self) -> None:
+        target = "notify.mobile_app_test_phone_a"
+        options = phone_config.normalized_options(
+            {
+                "notification_devices": [
+                    {"service": target, "name": "Stara nazwa", "enabled": True},
+                    {"service": target, "name": "Nowa nazwa", "enabled": False},
+                ]
+            }
+        )
+        devices = options["notification_devices"]
+        self.assertEqual(len(devices), 1)
+        self.assertEqual(devices[0]["name"], "Nowa nazwa")
+        self.assertFalse(devices[0]["enabled"])
+
     def test_existing_phone_without_mode_defaults_to_scheduled(self) -> None:
         device = phone_config.normalize_device(
             {

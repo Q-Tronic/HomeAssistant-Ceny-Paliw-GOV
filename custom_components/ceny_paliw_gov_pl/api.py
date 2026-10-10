@@ -290,6 +290,26 @@ def _year_or_reference(value: str | None, published_on: date | None) -> int:
     return date.today().year
 
 
+def _year_for_month(
+    value: str | None,
+    month: int,
+    published_on: date | None,
+) -> int:
+    """Infer an omitted year from the publication date near New Year."""
+    if value:
+        return int(value)
+    if published_on is None:
+        return date.today().year
+
+    year = published_on.year
+    month_delta = month - published_on.month
+    if month_delta <= -6:
+        return year + 1
+    if month_delta >= 6:
+        return year - 1
+    return year
+
+
 def _parse_validity(
     before: str,
     after: str,
@@ -304,8 +324,12 @@ def _parse_validity(
         if len(before_near) - match.end() <= 180:
             start_month = _month_number(match.group("start_month"))
             end_month = _month_number(match.group("end_month"))
-            end_year = _year_or_reference(match.group("year"), published_on)
-            start_year = end_year - (1 if start_month > end_month else 0)
+            if match.group("year"):
+                end_year = int(match.group("year"))
+                start_year = end_year - (1 if start_month > end_month else 0)
+            else:
+                start_year = _year_for_month(None, start_month, published_on)
+                end_year = start_year + (1 if end_month < start_month else 0)
             return (
                 _safe_date(start_year, start_month, int(match.group("start"))),
                 _safe_date(end_year, end_month, int(match.group("end"))),
@@ -317,8 +341,8 @@ def _parse_validity(
         if len(before_near) - match.end() > 180:
             match = None
         if match is not None:
-            year = _year_or_reference(match.group("year"), published_on)
             month = _month_number(match.group("month"))
+            year = _year_for_month(match.group("year"), month, published_on)
             return (
                 _safe_date(year, month, int(match.group("start"))),
                 _safe_date(year, month, int(match.group("end"))),
@@ -328,10 +352,11 @@ def _parse_validity(
     if single_matches:
         match = single_matches[-1]
         if len(before_near) - match.end() <= 180:
-            year = _year_or_reference(match.group("year"), published_on)
+            month = _month_number(match.group("month"))
+            year = _year_for_month(match.group("year"), month, published_on)
             day = _safe_date(
                 year,
-                _month_number(match.group("month")),
+                month,
                 int(match.group("day")),
             )
             return day, day
@@ -341,10 +366,18 @@ def _parse_validity(
         match = from_to_matches[0]
         start_month = _month_number(match.group("start_month"))
         end_month = _month_number(match.group("end_month"))
-        start_year = _year_or_reference(match.group("start_year"), published_on)
+        start_year_value = match.group("start_year")
+        end_year_value = match.group("end_year")
+        if start_year_value:
+            start_year = int(start_year_value)
+        elif end_year_value:
+            end_year_explicit = int(end_year_value)
+            start_year = end_year_explicit - (1 if start_month > end_month else 0)
+        else:
+            start_year = _year_for_month(None, start_month, published_on)
         end_year = (
-            int(match.group("end_year"))
-            if match.group("end_year")
+            int(end_year_value)
+            if end_year_value
             else start_year + (1 if end_month < start_month else 0)
         )
         return (
@@ -355,8 +388,9 @@ def _parse_validity(
     after_single_matches = list(_AFTER_SINGLE_DATE_RE.finditer(after_near))
     if after_single_matches:
         match = after_single_matches[0]
-        year = _year_or_reference(match.group("year"), published_on)
-        day = _safe_date(year, _month_number(match.group("month")), int(match.group("day")))
+        month = _month_number(match.group("month"))
+        year = _year_for_month(match.group("year"), month, published_on)
+        day = _safe_date(year, month, int(match.group("day")))
         return day, day
 
     return None

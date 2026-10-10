@@ -500,6 +500,7 @@ class FuelPriceNotificationManager:
     async def async_start(self) -> None:
         """Start notification listeners."""
         self._state = await self._store.async_load() or {}
+        self._prune_removed_targets_from_state()
         self._sync_target_repairs()
         await self._async_save_state()
         self._unsub_coordinator = self.coordinator.async_add_listener(
@@ -528,6 +529,7 @@ class FuelPriceNotificationManager:
 
     async def async_options_changed(self) -> None:
         """Apply dashboard changes to per-phone scheduling immediately."""
+        self._prune_removed_targets_from_state()
         self._sync_target_repairs()
         self._normalize_waiting_targets()
         await self._async_save_state()
@@ -568,6 +570,49 @@ class FuelPriceNotificationManager:
         if not isinstance(raw, list):
             return set()
         return {str(issue_id) for issue_id in raw if str(issue_id)}
+
+    def _prune_removed_targets_from_state(self) -> None:
+        """Remove persisted notification state for phones no longer configured."""
+        current_targets = {
+            str(device.get(DEVICE_SERVICE, ""))
+            for device in self.devices
+            if device.get(DEVICE_SERVICE)
+        }
+        for key in (
+            "phone_status",
+            "phone_last_sent_at",
+            "delivered_publications",
+            "delivered_source_publications",
+        ):
+            raw = self._state.get(key)
+            if not isinstance(raw, Mapping):
+                continue
+            cleaned = {
+                str(target): value
+                for target, value in raw.items()
+                if str(target) in current_targets
+            }
+            if cleaned:
+                self._state[key] = cleaned
+            else:
+                self._state.pop(key, None)
+
+        for key in ("notified_services", "waiting_services"):
+            raw = self._state.get(key)
+            if not isinstance(raw, list):
+                continue
+            cleaned = [
+                str(target) for target in raw if str(target) in current_targets
+            ]
+            if cleaned:
+                self._state[key] = sorted(set(cleaned))
+            else:
+                self._state.pop(key, None)
+
+        if "notified_services" not in self._state:
+            self._state.pop("notified_for", None)
+        if "waiting_services" not in self._state:
+            self._state.pop("waiting_for_date", None)
 
     def _sync_target_repairs(self) -> None:
         """Create or clear repair warnings for renamed or missing phones."""
@@ -959,6 +1004,13 @@ class FuelPriceNotificationManager:
                     )
                 else:
                     successful.add(target)
+
+            if automatic and not attempted_targets and not filtered:
+                # Another concurrent automatic task may have delivered every
+                # target while this task was waiting for the send lock. In that
+                # case there is nothing to report and the previous send status
+                # must stay untouched.
+                return 0
 
             handled = successful | filtered
             failed = attempted_targets - successful

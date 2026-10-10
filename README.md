@@ -1,8 +1,35 @@
 # Maksymalne Ceny Paliw GOV.PL
 
+<p align="center">
+  <img src="custom_components/ceny_paliw_gov_pl/brand/icon@2x.png" width="128" height="128" alt="Maksymalne Ceny Paliw GOV.PL">
+</p>
+
 Niestandardowa integracja Home Assistant autorstwa **Q-Tronic**. Pobiera maksymalne detaliczne ceny paliw publikowane przez Ministerstwo Energii na gov.pl, tworzy encje dla cen dzisiejszych i jutrzejszych, prowadzi lokalną historię oraz wysyła konfigurowalne powiadomienia na telefony z aplikacją Home Assistant Companion.
 
 Aktualna wersja: **v1.6.2**.
+
+## Spis treści
+
+- [Najważniejsze funkcje](#najważniejsze-funkcje)
+- [Poprawki w v1.6.2](#poprawki-w-v162)
+- [Ustawienia telefonu dostępne na dashboardzie](#ustawienia-telefonu-dostępne-na-dashboardzie)
+- [Indywidualny tryb, godzina i oczekiwanie na publikację](#indywidualny-tryb-godzina-i-oczekiwanie-na-publikację)
+- [Encje diagnostyczne](#encje-diagnostyczne)
+- [Status publikacji](#status-publikacji)
+- [Powiadomienia](#powiadomienia)
+- [Filtr zmian](#filtr-zmian)
+- [Historia cen](#historia-cen)
+- [Gotowe przykłady dashboardu](#gotowe-przykłady-dashboardu)
+- [Zdarzenie aktualizacji](#zdarzenie-aktualizacji)
+- [Repairs](#repairs)
+- [Źródło danych](#źródło-danych)
+- [Wymagania](#wymagania)
+- [Rozwiązywanie problemów](#rozwiązywanie-problemów)
+- [Instalacja przez HACS](#instalacja-przez-hacs)
+- [Aktualizacja przez HACS](#aktualizacja-przez-hacs)
+- [Instalacja ręczna](#instalacja-ręczna)
+- [Autor](#autor)
+- [Licencja](#licencja)
 
 ## Najważniejsze funkcje
 
@@ -39,14 +66,15 @@ Nie opublikowano
 
 Ikony encji zmiany ceny reagują na trend. Wzrost pokazuje ikonę wzrostu, spadek ikonę spadku, brak zmiany ikonę neutralną, a brak publikacji ikonę informacyjną.
 
-
-
-
 ## Poprawki w v1.6.2
 
 Wersja 1.6.2 poprawia kompatybilność z Home Assistant i wzmacnia walidację publicznego wydania. Config Flow korzysta z kompatybilnego importu `voluptuous`, dzięki czemu integracja może działać również na Home Assistant sprzed przejścia Core na Probatio. Minimalna wspierana wersja Home Assistant to `2025.8.0`.
 
-Usunięto `strings.json`, ponieważ custom integrations powinny korzystać z plików w katalogu `translations`. Dodatkowo poprawiono czyszczenie ostrzeżeń Repairs po usunięciu telefonu oraz dodano ponowną kontrolę ochrony przed duplikatami już wewnątrz blokady wysyłki.
+Usunięto `strings.json`, ponieważ custom integrations powinny korzystać z plików w katalogu `translations`. Dodatkowo poprawiono czyszczenie ostrzeżeń Repairs po usunięciu telefonu oraz dodano ponowną kontrolę ochrony przed duplikatami już wewnątrz blokady wysyłki. Równoległa próba obsługi publikacji, która została już dostarczona przez inne zadanie, nie nadpisuje statusu ostatniej wysyłki pustym wynikiem. Ręczne sprawdzanie cen zgłasza błąd, jeżeli odświeżenie koordynatora faktycznie się nie powiedzie.
+
+Parser poprawnie wnioskuje rok na przełomie grudnia i stycznia, gdy wyjątkowa publikacja nie zawiera roku bezpośrednio w tytule. Lokalna historia daje pierwszeństwo nowszej publikacji, jeżeli zakresy dwóch publikacji się nakładają. Normalizacja konfiguracji usuwa też ewentualne zduplikowane wpisy tego samego telefonu.
+
+Dodano nową ikonę integracji w standardowym katalogu `brand`. Paczka zawiera `icon.png` 256x256 oraz `icon@2x.png` 512x512 z przezroczystością. Edytowalne źródło SVG znajduje się w `assets/icon.svg`. README otrzymało klikalny spis treści.
 
 
 ## Poprawki w v1.6.1
@@ -481,6 +509,8 @@ Jeżeli integracja nie pojawia się na liście albo przy dodawaniu pokazuje `Inv
 Po aktualizacji integracji uruchom ponownie Home Assistant. Jeżeli problem nadal występuje, otwórz `Ustawienia > System > Dzienniki` i wyszukaj wpis zawierający `ceny_paliw_gov_pl`, `config_flow`, `ImportError`, `ModuleNotFoundError` albo `Traceback`. Taki fragment logu najlepiej dołączyć do zgłoszenia na GitHubie.
 
 Jeżeli po aktualizacji interfejs nadal pokazuje stare tłumaczenia lub formularze, wykonaj twarde odświeżenie przeglądarki albo zamknij i ponownie otwórz aplikację Home Assistant.
+
+Od Home Assistant `2026.3` ikona integracji jest dostarczana lokalnie z katalogu `custom_components/ceny_paliw_gov_pl/brand/`. Home Assistant powinien używać jej w interfejsie integracji. Jeżeli sam panel HACS nadal pokazuje `Icon not available`, może to wynikać z aktualnego ograniczenia frontendu HACS dotyczącego lokalnych ikon custom integrations, a nie z braku plików w tej integracji.
 
 ## Instalacja przez HACS
 

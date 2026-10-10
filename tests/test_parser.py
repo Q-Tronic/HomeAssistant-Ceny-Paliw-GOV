@@ -84,6 +84,33 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(periods[0].prices["on"], Decimal("8.06"))
 
 
+
+    def test_omitted_year_rolls_into_next_year(self) -> None:
+        html = """
+        <html><body>
+        <div>31.12.2026</div>
+        <a href="/web/energia/nowy-rok">Maksymalna cena detaliczna paliw obowiązująca 1 stycznia</a>
+        <p>Benzyna 95 - 6,10 zł/l, benzyna 98 - 6,80 zł/l, olej napędowy - 6,30 zł/l.</p>
+        </body></html>
+        """
+        periods = api.parse_news_page(html)
+        self.assertEqual(len(periods), 1)
+        self.assertEqual(periods[0].valid_from, date(2027, 1, 1))
+        self.assertEqual(periods[0].valid_to, date(2027, 1, 1))
+
+    def test_omitted_year_cross_month_range_rolls_over_new_year(self) -> None:
+        html = """
+        <html><body>
+        <div>30.12.2026</div>
+        <a href="/web/energia/sylwester">Maksymalna cena detaliczna paliw obowiązująca w okresie 31 grudnia - 2 stycznia</a>
+        <p>Benzyna 95 - 6,10 zł/l, benzyna 98 - 6,80 zł/l, olej napędowy - 6,30 zł/l.</p>
+        </body></html>
+        """
+        periods = api.parse_news_page(html)
+        self.assertEqual(len(periods), 1)
+        self.assertEqual(periods[0].valid_from, date(2026, 12, 31))
+        self.assertEqual(periods[0].valid_to, date(2027, 1, 2))
+
     def test_recent_unknown_validity_is_reported_by_diagnostics(self) -> None:
         html = """
         <html><body>

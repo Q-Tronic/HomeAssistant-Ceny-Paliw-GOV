@@ -91,7 +91,10 @@ class FuelPriceHistoryManager:
                 period for period in (data.today, data.tomorrow) if period is not None
             )
 
-        for period in periods:
+        # The parser orders periods from newest publication to oldest. Record
+        # them in the opposite order so a newer corrected publication wins when
+        # validity ranges overlap.
+        for period in reversed(tuple(periods)):
             self._record_period(period)
 
         cutoff = data.today_date - timedelta(days=HISTORY_RETENTION_DAYS)

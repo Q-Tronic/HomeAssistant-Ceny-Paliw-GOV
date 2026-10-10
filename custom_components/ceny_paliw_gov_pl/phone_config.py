@@ -89,9 +89,6 @@ def fuels_for_selection_option(option: str) -> list[str]:
     return list(FUEL_SELECTION_OPTIONS.get(option, tuple(FUELS)))
 
 
-
-
-
 def normalize_notification_mode(value: Any) -> str:
     """Return a supported per-phone notification delivery mode."""
     mode = str(value or DEFAULT_PHONE_NOTIFICATION_MODE).strip()
@@ -111,6 +108,7 @@ def notification_mode_for_option(option: str) -> str:
         if label == option:
             return mode
     return DEFAULT_PHONE_NOTIFICATION_MODE
+
 
 def normalize_target_selection(value: Any) -> list[str]:
     """Normalize a select selector value to a stable list of notification targets."""
@@ -132,6 +130,7 @@ def normalize_target_selection(value: Any) -> list[str]:
         seen.add(target)
         result.append(target)
     return result
+
 
 def normalize_device(
     device: Mapping[str, Any],
@@ -171,7 +170,7 @@ def normalized_options(options: Mapping[str, Any]) -> dict[str, Any]:
         result.get(CONF_NOTIFICATION_FUELS, DEFAULT_NOTIFICATION_FUELS)
     )
     raw_devices = result.get(CONF_NOTIFICATION_DEVICES, [])
-    devices: list[dict[str, Any]] = []
+    devices_by_target: dict[str, dict[str, Any]] = {}
     if isinstance(raw_devices, list):
         for item in raw_devices:
             if not isinstance(item, Mapping):
@@ -182,8 +181,11 @@ def normalized_options(options: Mapping[str, Any]) -> dict[str, Any]:
                 fallback_fuels=fallback_fuels,
             )
             if normalized is not None:
-                devices.append(normalized)
-    result[CONF_NOTIFICATION_DEVICES] = devices
+                # A service target is the stable phone identifier throughout the
+                # integration. Keep only one record per target and let the last
+                # stored record win if legacy/corrupt options contain duplicates.
+                devices_by_target[str(normalized[DEVICE_SERVICE])] = normalized
+    result[CONF_NOTIFICATION_DEVICES] = list(devices_by_target.values())
     return result
 
 

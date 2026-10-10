@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Maksymalne Ceny Paliw GOV.PL, ikona</title>
+  <desc id="desc">Wyśrodkowany jasny dystrybutor paliwa na granatowym tle z turkusowym banknotem, napisem PLN i pistoletem do nalewania paliwa z prawej strony.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0.1" y1="0" x2="1" y2="1"><stop stop-color="#17486a"/><stop offset="0.42" stop-color="#062644"/><stop offset="1" stop-color="#031128"/></linearGradient>
+    <radialGradient id="glow" cx="34%" cy="32%" r="88%"><stop stop-color="#2e749c" stop-opacity=".22"/><stop offset=".55" stop-color="#0a2d52" stop-opacity=".02"/><stop offset="1" stop-opacity="0"/></radialGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset=".5" stop-color="#f7fbfe"/><stop offset="1" stop-color="#d9e8f1"/></linearGradient>
+    <linearGradient id="bodyEdge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset=".7" stop-color="#edf5fa"/><stop offset="1" stop-color="#c9dce9"/></linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2=".95" y2="1"><stop stop-color="#062337"/><stop offset=".6" stop-color="#07364d"/><stop offset="1" stop-color="#06293c"/></linearGradient>
+    <linearGradient id="mint" x1=".1" y1="0" x2="1" y2="1"><stop stop-color="#74fff0"/><stop offset="1" stop-color="#29ded9"/></linearGradient>
+    <linearGradient id="button" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#24e8d1"/><stop offset="1" stop-color="#00a993"/></linearGradient>
+    <linearGradient id="hose" x1="0" y1="0" x2="1" y2=".9"><stop stop-color="#21384b"/><stop offset=".45" stop-color="#526f87"/><stop offset="1" stop-color="#2b4865"/></linearGradient>
+    <linearGradient id="nozzle" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5afff0"/><stop offset=".50" stop-color="#2ce3da"/><stop offset="1" stop-color="#09bbb1"/></linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ff2a41"/><stop offset="1" stop-color="#ed1834"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-15%" width="150%" height="150%"><feDropShadow dx="0" dy="18" stdDeviation="23" flood-color="#001022" flood-opacity=".32"/></filter>
+    <filter id="inner" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <!-- Tło zaokrąglone jak ikona aplikacji -->
+  <rect width="1024" height="1024" rx="210" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="210" fill="url(#glow)"/>
+  <rect x="4" y="4" width="1016" height="1016" rx="206" stroke="#2c638b" stroke-opacity=".42" stroke-width="7" fill="none"/>
+  <!-- Wąż biegnący z tyłu obudowy, łagodny łuk -->
+  <path d="M724 485 C750 510 745 612 747 668 C753 759 855 776 873 687 C889 613 863 561 852 505" fill="none" stroke="#00152a" stroke-width="53" stroke-linecap="round"/>
+  <path d="M724 485 C750 510 745 612 747 668 C753 759 855 776 873 687 C889 613 863 561 852 505" fill="none" stroke="url(#hose)" stroke-width="40" stroke-linecap="round"/>
+  <path d="M733 489 C752 548 741 630 759 686 C781 751 847 737 863 684" fill="none" stroke="#7997ac" stroke-opacity=".42" stroke-width="7" stroke-linecap="round"/>
+  <!-- Ciemne gniazdo pistoletu za panelem dystrybutora -->
+  <rect x="701" y="280" width="69" height="239" rx="28" fill="#071d34"/>
+  <rect x="723" y="323" width="45" height="159" rx="18" fill="#0c3350"/>
+  <!-- Metalowa rurka pistoletu -->
+  <path d="M709 300 L757 302 Q774 302 786 319 L820 361" fill="none" stroke="#c8dce9" stroke-width="35" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M709 295 L757 297 Q774 297 786 314 L820 356" fill="none" stroke="#f7fcff" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Kabłąk pod spustem pistoletu -->
+  <path d="M839 409 L850 515 Q852 539 870 533 L890 526" fill="none" stroke="#f6fbfd" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M841 421 L851 509 Q852 530 867 523" fill="none" stroke="#12324e" stroke-width="13" stroke-linecap="round"/>
+  <!-- Rączka pistoletu o spójnym turkusowym konturze -->
+  <path d="M815 351 L830 340 Q843 332 857 344 L887 372 Q895 380 898 391 L919 507 Q921 524 908 530 Q894 536 883 519 L871 456 Q867 445 853 441 L828 433 Q816 430 813 417 L801 375 Q798 361 815 351 Z" fill="url(#nozzle)"/>
+  <path d="M818 354 Q840 339 850 347 L882 378 Q890 387 892 398 L911 506" stroke="#a2fff7" stroke-opacity=".55" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <!-- Dystrybutor, korpus ma środek w x=512 niezależnie od pistoletu -->
+  <g filter="url(#shadow)">
+    <rect x="296" y="172" width="432" height="628" rx="78" fill="url(#bodyEdge)"/>
+    <rect x="309" y="183" width="407" height="605" rx="68" fill="url(#face)"/>
+    <rect x="264" y="775" width="496" height="64" rx="32" fill="url(#bodyEdge)"/>
+  </g>
+  <path d="M343 186 H676" stroke="#ffffff" stroke-opacity=".78" stroke-width="7" stroke-linecap="round"/>
+  <!-- Ekran -->
+  <rect x="346" y="247" width="332" height="276" rx="51" fill="#031b2e"/>
+  <rect x="358" y="258" width="308" height="253" rx="40" fill="url(#screen)"/>
+  <!-- Banknot, wyraźnie mniejszy od ekranu -->
+  <path d="M433 309 H592 Q603 309 603 320 V396 Q603 407 592 407 H433 Q421 407 421 396 V320 Q421 309 433 309Z" fill="url(#mint)"/>
+  <path d="M458 321 H567 C567 336 580 346 591 346 V370 C574 370 566 382 566 394 H458 C458 381 446 370 434 370 V345 C448 345 458 334 458 321Z" fill="url(#screen)"/>
+  <circle cx="512" cy="357" r="31" fill="url(#mint)"/>
+  <circle cx="455" cy="357" r="7" fill="url(#mint)"/>
+  <circle cx="570" cy="357" r="7" fill="url(#mint)"/>
+  <!-- Tekst ma formę SVG, nie jest osadzonym bitmapowym napisem -->
+  <text x="512" y="470" text-anchor="middle" font-family="DejaVu Sans, Arial, Helvetica, sans-serif" font-weight="600" font-size="51" letter-spacing="5" fill="#5deee7">PLN</text>
+  <!-- Panel przedni -->
+  <rect x="347" y="578" width="233" height="31" rx="15.5" fill="#b3c8d5"/>
+  <rect x="347" y="637" width="177" height="30" rx="15" fill="#98afc1"/>
+  <circle cx="636" cy="619" r="37" fill="url(#button)"/>
+  <circle cx="636" cy="619" r="20" fill="#a3fff4"/>
+  <rect x="347" y="708" width="330" height="30" rx="15" fill="url(#red)"/>
+</svg>

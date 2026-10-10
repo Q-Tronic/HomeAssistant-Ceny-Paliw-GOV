@@ -3,14 +3,25 @@
 ## 1.6.2
 
 - zmieniono bezpośredni import `probatio` na kompatybilny `voluptuous as vol`
+- zabezpieczono Reconfigure przed nieprawidłową lub starszą wartością interwału zapisaną w config entry
 - ustawiono minimalną wspieraną wersję Home Assistant na `2025.8.0` w `hacs.json`
 - usunięto `strings.json` i pozostawiono tłumaczenia w katalogu `translations`
 - zmieniono import `EntityCategory` na publiczny import z `homeassistant.const`
 - poprawiono czyszczenie Repairs po usunięciu telefonu z konfiguracji
+- po usunięciu telefonu czyszczony jest także jego zapisany stan powiadomień, identyfikatory dostarczenia i czas ostatniej wysyłki
 - dodano ponowną ochronę przed duplikatem już wewnątrz blokady wysyłki
+- równoległa próba automatyczna, która po oczekiwaniu na blokadę nie ma już nic do wysłania, nie nadpisuje statusu ostatniej wysyłki
+- poprawiono wnioskowanie roku dla publikacji bez roku w tytule na przełomie grudnia i stycznia
+- poprawiono wynik ręcznego sprawdzania cen, aby błąd odświeżenia koordynatora nie był raportowany jako sukces
+- poprawiono priorytet nakładających się publikacji w historii, aby nowsza korekta nie była nadpisywana starszą
+- zabezpieczono konfigurację przed zduplikowanymi wpisami tego samego telefonu
 - rozszerzono GitHub Actions o Hassfest, HACS Action i test importu na Home Assistant `2025.8.0` oraz `2026.10.1`
 - dodano testy regresyjne kompatybilności i bezpieczeństwa wysyłki
-- uproszczono README i dodano wymagania oraz rozwiązywanie problemów
+- dodano nową ikonę integracji w `brand/icon.png` 256x256 oraz `brand/icon@2x.png` 512x512 z przezroczystością
+- zachowano edytowalne źródło ikony w `assets/icon.svg`
+- dodano test integralności i wymiarów plików brandingu
+- rozszerzono test kompatybilności CI o import wszystkich modułów integracji
+- uproszczono README, dodano wymagania, rozwiązywanie problemów i klikalny spis treści
 
 ## 1.6.1
 
