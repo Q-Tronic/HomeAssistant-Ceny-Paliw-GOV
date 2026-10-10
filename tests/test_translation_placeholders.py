@@ -9,7 +9,6 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / "custom_components" / "ceny_paliw_gov_pl"
 TRANSLATION_FILES = (
-    COMPONENT / "strings.json",
     COMPONENT / "translations" / "en.json",
     COMPONENT / "translations" / "pl.json",
 )
@@ -44,6 +43,20 @@ class TranslationPlaceholderTests(unittest.TestCase):
             description = data["options"]["step"]["phone_menu"]["description"]
             with self.subTest(file=path.name):
                 self.assertIn("{mode}", description)
+
+    def test_translation_key_sets_match(self) -> None:
+        def key_paths(value, prefix=()):
+            paths = set()
+            if isinstance(value, dict):
+                for key, child in value.items():
+                    paths.update(key_paths(child, prefix + (str(key),)))
+            else:
+                paths.add(prefix)
+            return paths
+
+        english = json.loads(TRANSLATION_FILES[0].read_text(encoding="utf-8"))
+        polish = json.loads(TRANSLATION_FILES[1].read_text(encoding="utf-8"))
+        self.assertEqual(key_paths(english), key_paths(polish))
 
 
 if __name__ == "__main__":

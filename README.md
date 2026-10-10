@@ -2,7 +2,7 @@
 
 Niestandardowa integracja Home Assistant autorstwa **Q-Tronic**. Pobiera maksymalne detaliczne ceny paliw publikowane przez Ministerstwo Energii na gov.pl, tworzy encje dla cen dzisiejszych i jutrzejszych, prowadzi lokalną historię oraz wysyła konfigurowalne powiadomienia na telefony z aplikacją Home Assistant Companion.
 
-Aktualna wersja: **v1.6.1**.
+Aktualna wersja: **v1.6.2**.
 
 ## Najważniejsze funkcje
 
@@ -39,6 +39,14 @@ Nie opublikowano
 
 Ikony encji zmiany ceny reagują na trend. Wzrost pokazuje ikonę wzrostu, spadek ikonę spadku, brak zmiany ikonę neutralną, a brak publikacji ikonę informacyjną.
 
+
+
+
+## Poprawki w v1.6.2
+
+Wersja 1.6.2 poprawia kompatybilność z Home Assistant i wzmacnia walidację publicznego wydania. Config Flow korzysta z kompatybilnego importu `voluptuous`, dzięki czemu integracja może działać również na Home Assistant sprzed przejścia Core na Probatio. Minimalna wspierana wersja Home Assistant to `2025.8.0`.
+
+Usunięto `strings.json`, ponieważ custom integrations powinny korzystać z plików w katalogu `translations`. Dodatkowo poprawiono czyszczenie ostrzeżeń Repairs po usunięciu telefonu oraz dodano ponowną kontrolę ochrony przed duplikatami już wewnątrz blokady wysyłki.
 
 
 ## Poprawki w v1.6.1
@@ -168,43 +176,6 @@ Ręczne użycie przycisku `Wyślij powiadomienie teraz` nadal zawsze wykonuje ż
 Integracja wykrywa sytuację, w której na GOV.PL pojawia się świeża publikacja z kompletem cen, ale parser nie potrafi rozpoznać jej zakresu obowiązywania. W takiej sytuacji tworzony jest problem w sekcji Naprawy Home Assistanta.
 
 Mechanizm wykrywa również brak skonfigurowanego celu `notify.mobile_app_*` dla włączonego telefonu.
-
-### GitHub Actions
-
-Repozytorium zawiera workflow:
-
-```text
-.github/workflows/validate.yml
-```
-
-Przy każdym pushu i pull requeście automatycznie wykonywane są:
-
-- sprawdzenie składni Python
-- testy parsera
-- walidacja JSON i YAML
-- kontrola zgodności numeru wersji
-
-Workflow używa `actions/checkout@v7` i `actions/setup-python@v7`.
-
-### Automatyczna kontrola wersji
-
-Skrypt:
-
-```text
-scripts/check_version_consistency.py
-```
-
-sprawdza zgodność wersji pomiędzy:
-
-```text
-custom_components/ceny_paliw_gov_pl/manifest.json
-custom_components/ceny_paliw_gov_pl/const.py
-CHANGELOG.md
-README.md
-RELEASE-vX.Y.Z.md
-```
-
-Dzięki temu błędny release z innym numerem wersji powinien zostać wykryty przez GitHub Actions przed publikacją.
 
 ## Ustawienia telefonu dostępne na dashboardzie
 
@@ -495,6 +466,21 @@ Oficjalna strona Ministerstwa Energii:
 ```text
 https://www.gov.pl/web/energia/wiadomosci
 ```
+
+## Wymagania
+
+- Home Assistant Core `2025.8.0` lub nowszy
+- HACS dla instalacji przez HACS
+- aplikacja Home Assistant Companion na telefonie, jeśli mają być używane powiadomienia mobilne
+- dostęp Home Assistanta do strony gov.pl
+
+## Rozwiązywanie problemów
+
+Jeżeli integracja nie pojawia się na liście albo przy dodawaniu pokazuje `Invalid handler specified`, najpierw sprawdź wersję Home Assistant w `Ustawienia > Informacje`. Wersje starsze niż `2025.8.0` nie są wspierane.
+
+Po aktualizacji integracji uruchom ponownie Home Assistant. Jeżeli problem nadal występuje, otwórz `Ustawienia > System > Dzienniki` i wyszukaj wpis zawierający `ceny_paliw_gov_pl`, `config_flow`, `ImportError`, `ModuleNotFoundError` albo `Traceback`. Taki fragment logu najlepiej dołączyć do zgłoszenia na GitHubie.
+
+Jeżeli po aktualizacji interfejs nadal pokazuje stare tłumaczenia lub formularze, wykonaj twarde odświeżenie przeglądarki albo zamknij i ponownie otwórz aplikację Home Assistant.
 
 ## Instalacja przez HACS
 

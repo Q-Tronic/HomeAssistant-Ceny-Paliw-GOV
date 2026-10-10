@@ -1,5 +1,6 @@
 {
   "name": "Maksymalne Ceny Paliw GOV.PL",
   "render_readme": true,
-  "country": "PL"
+  "country": "PL",
+  "homeassistant": "2025.8.0"
 }

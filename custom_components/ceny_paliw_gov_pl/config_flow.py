@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import probatio
+import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
@@ -94,7 +94,7 @@ class FuelPricesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data={CONF_UPDATE_INTERVAL_MINUTES: DEFAULT_UPDATE_INTERVAL_MINUTES},
             )
 
-        return self.async_show_form(step_id="user", data_schema=probatio.Schema({}))
+        return self.async_show_form(step_id="user", data_schema=vol.Schema({}))
 
     async def async_step_reconfigure(
         self,
@@ -125,9 +125,9 @@ class FuelPricesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=probatio.Schema(
+            data_schema=vol.Schema(
                 {
-                    probatio.Required(
+                    vol.Required(
                         CONF_UPDATE_INTERVAL_MINUTES,
                         description={"suggested_value": str(current_interval)},
                     ): SelectSelector(
@@ -274,9 +274,9 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
 
         return self.async_show_form(
             step_id="notification_content",
-            data_schema=probatio.Schema(
+            data_schema=vol.Schema(
                 {
-                    probatio.Optional(
+                    vol.Optional(
                         CONF_NOTIFICATION_CUSTOM_TITLE,
                         description={
                             "suggested_value": options.get(
@@ -285,7 +285,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                             )
                         },
                     ): TemplateSelector(),
-                    probatio.Optional(
+                    vol.Optional(
                         CONF_NOTIFICATION_CUSTOM_MESSAGE,
                         description={
                             "suggested_value": options.get(
@@ -323,9 +323,9 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
 
         return self.async_show_form(
             step_id="notification_filters",
-            data_schema=probatio.Schema(
+            data_schema=vol.Schema(
                 {
-                    probatio.Optional(
+                    vol.Optional(
                         CONF_NOTIFICATION_ONLY_ON_CHANGE,
                         description={
                             "suggested_value": options.get(
@@ -334,7 +334,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                             )
                         },
                     ): BooleanSelector(),
-                    probatio.Optional(
+                    vol.Optional(
                         CONF_NOTIFICATION_MIN_CHANGE_GROSZ,
                         description={
                             "suggested_value": options.get(
@@ -407,9 +407,9 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
 
         return self.async_show_form(
             step_id="phone_list",
-            data_schema=probatio.Schema(
+            data_schema=vol.Schema(
                 {
-                    probatio.Optional(
+                    vol.Optional(
                         CONF_NOTIFICATION_SERVICES,
                         description={"suggested_value": selected_targets},
                     ): SelectSelector(
@@ -445,9 +445,9 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
 
         return self.async_show_form(
             step_id="choose_phone",
-            data_schema=probatio.Schema(
+            data_schema=vol.Schema(
                 {
-                    probatio.Required(
+                    vol.Required(
                         CONF_SELECTED_DEVICE,
                         description={"suggested_value": suggested},
                     ): SelectSelector(
@@ -544,21 +544,21 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
         ]
         return self.async_show_form(
             step_id="phone_settings",
-            data_schema=probatio.Schema(
+            data_schema=vol.Schema(
                 {
-                    probatio.Optional(
+                    vol.Optional(
                         CONF_DEVICE_NAME,
                         description={"suggested_value": default_name},
                     ): TextSelector(),
-                    probatio.Optional(
+                    vol.Optional(
                         CONF_DEVICE_ENABLED,
                         description={"suggested_value": default_enabled},
                     ): BooleanSelector(),
-                    probatio.Optional(
+                    vol.Optional(
                         CONF_DEVICE_NOTIFICATION_TIME,
                         description={"suggested_value": default_time},
                     ): TimeSelector(),
-                    probatio.Optional(
+                    vol.Optional(
                         CONF_DEVICE_NOTIFICATION_MODE,
                         description={"suggested_value": default_mode},
                     ): SelectSelector(
@@ -570,7 +570,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                             mode=SelectSelectorMode.DROPDOWN,
                         )
                     ),
-                    probatio.Optional(
+                    vol.Optional(
                         CONF_DEVICE_NOTIFICATION_FUELS,
                         description={"suggested_value": default_fuels},
                     ): SelectSelector(

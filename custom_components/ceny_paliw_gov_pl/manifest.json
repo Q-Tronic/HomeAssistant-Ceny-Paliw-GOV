@@ -1,7 +1,7 @@
 {
   "domain": "ceny_paliw_gov_pl",
   "name": "Maksymalne Ceny Paliw GOV.PL",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "codeowners": [
     "@Q-Tronic"
   ],

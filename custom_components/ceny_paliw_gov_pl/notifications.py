@@ -501,6 +501,7 @@ class FuelPriceNotificationManager:
         """Start notification listeners."""
         self._state = await self._store.async_load() or {}
         self._sync_target_repairs()
+        await self._async_save_state()
         self._unsub_coordinator = self.coordinator.async_add_listener(
             self._handle_coordinator_update
         )
@@ -517,14 +518,13 @@ class FuelPriceNotificationManager:
         if self._unsub_coordinator is not None:
             self._unsub_coordinator()
             self._unsub_coordinator = None
+        issue_ids = self._stored_target_issue_ids()
         for device in self.devices:
             target = str(device.get(DEVICE_SERVICE, ""))
             if target:
-                ir.async_delete_issue(
-                    self.hass,
-                    DOMAIN,
-                    self._target_issue_id(target),
-                )
+                issue_ids.add(self._target_issue_id(target))
+        for issue_id in issue_ids:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
 
     async def async_options_changed(self) -> None:
         """Apply dashboard changes to per-phone scheduling immediately."""
@@ -562,13 +562,22 @@ class FuelPriceNotificationManager:
             char if char.isalnum() else "_" for char in target.lower()
         )
 
+    def _stored_target_issue_ids(self) -> set[str]:
+        """Return repair issue IDs created for notification targets."""
+        raw = self._state.get("target_issue_ids", [])
+        if not isinstance(raw, list):
+            return set()
+        return {str(issue_id) for issue_id in raw if str(issue_id)}
+
     def _sync_target_repairs(self) -> None:
         """Create or clear repair warnings for renamed or missing phones."""
+        current_issue_ids: set[str] = set()
         for device in self.devices:
             target = str(device.get(DEVICE_SERVICE, ""))
             if not target:
                 continue
             issue_id = self._target_issue_id(target)
+            current_issue_ids.add(issue_id)
             service = target.split(".", 1)[1] if target.startswith("notify.") else ""
             available = bool(service and self.hass.services.has_service("notify", service))
             enabled = bool(device.get(DEVICE_ENABLED, True))
@@ -588,6 +597,10 @@ class FuelPriceNotificationManager:
                     "target": target,
                 },
             )
+
+        for issue_id in self._stored_target_issue_ids() - current_issue_ids:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+        self._state["target_issue_ids"] = sorted(current_issue_ids)
 
     def _target_date(self) -> str:
         return self.coordinator.data.tomorrow_date.isoformat()
@@ -900,6 +913,8 @@ class FuelPriceNotificationManager:
             for device in devices:
                 target = str(device.get(DEVICE_SERVICE, ""))
                 if not target:
+                    continue
+                if automatic and self._is_delivered(target, device):
                     continue
                 fuels = normalize_fuels(device.get(DEVICE_FUELS))
                 notification_options = (

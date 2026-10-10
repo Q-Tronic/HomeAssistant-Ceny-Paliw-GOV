@@ -3,6 +3,9 @@ name: Walidacja integracji
 on:
   push:
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
 
 permissions:
   contents: read
@@ -25,7 +28,7 @@ jobs:
       - name: Sprawdź składnię Python
         run: python -m compileall -q custom_components tests scripts
 
-      - name: Uruchom testy parsera
+      - name: Uruchom testy
         run: python -m unittest discover -s tests -p "test_*.py" -v
 
       - name: Sprawdź JSON i YAML
@@ -33,3 +36,49 @@ jobs:
 
       - name: Sprawdź zgodność wersji
         run: python scripts/check_version_consistency.py
+
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pobierz repozytorium
+        uses: actions/checkout@v7
+      - name: Hassfest
+        uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pobierz repozytorium
+        uses: actions/checkout@v7
+      - name: HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+
+  compatibility:
+    name: Home Assistant ${{ matrix.ha_version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ha_version: "2025.8.0"
+            python_version: "3.13"
+          - ha_version: "2026.10.1"
+            python_version: "3.14"
+    steps:
+      - name: Pobierz repozytorium
+        uses: actions/checkout@v7
+
+      - name: Ustaw Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Zainstaluj Home Assistant
+        run: python -m pip install --upgrade pip "homeassistant==${{ matrix.ha_version }}"
+
+      - name: Sprawdź import całej integracji i Config Flow
+        run: |
+          python -c "import custom_components.ceny_paliw_gov_pl"
+          python -c "import custom_components.ceny_paliw_gov_pl.config_flow"

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.6.2
+
+- zmieniono bezpośredni import `probatio` na kompatybilny `voluptuous as vol`
+- ustawiono minimalną wspieraną wersję Home Assistant na `2025.8.0` w `hacs.json`
+- usunięto `strings.json` i pozostawiono tłumaczenia w katalogu `translations`
+- zmieniono import `EntityCategory` na publiczny import z `homeassistant.const`
+- poprawiono czyszczenie Repairs po usunięciu telefonu z konfiguracji
+- dodano ponowną ochronę przed duplikatem już wewnątrz blokady wysyłki
+- rozszerzono GitHub Actions o Hassfest, HACS Action i test importu na Home Assistant `2025.8.0` oraz `2026.10.1`
+- dodano testy regresyjne kompatybilności i bezpieczeństwa wysyłki
+- uproszczono README i dodano wymagania oraz rozwiązywanie problemów
+
 ## 1.6.1
 
 - poprawiono ręczne wysyłanie powiadomienia do telefonu dodanego w Options Flow przed końcowym zapisem konfiguracji
