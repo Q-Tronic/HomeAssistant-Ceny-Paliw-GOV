@@ -65,6 +65,7 @@ from .notifications import (
 )
 from .phone_config import (
     default_device_name,
+    merge_working_options,
     normalize_fuels,
     normalize_notification_mode,
     normalize_target_selection,
@@ -163,13 +164,15 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
 
     def __init__(self) -> None:
         self._working_options: dict[str, Any] | None = None
+        self._base_options: dict[str, Any] | None = None
         self._selected_target: str | None = None
         self._phone_status = ""
         self._diagnostic_status = ""
 
     def _ensure_working_options(self) -> dict[str, Any]:
         if self._working_options is None:
-            self._working_options = normalized_options(self.config_entry.options)
+            self._base_options = dict(self.config_entry.options)
+            self._working_options = normalized_options(self._base_options)
             defaults: dict[str, Any] = {
                 CONF_NOTIFICATION_ONLY_ON_CHANGE: DEFAULT_NOTIFICATION_ONLY_ON_CHANGE,
                 CONF_NOTIFICATION_MIN_CHANGE_GROSZ: DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ,
@@ -734,7 +737,12 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Save all changes and reload the integration."""
+        working = self._ensure_working_options()
         return self.async_create_entry(
             title="",
-            data=self._ensure_working_options(),
+            data=merge_working_options(
+                self._base_options or {},
+                working,
+                self.config_entry.options,
+            ),
         )

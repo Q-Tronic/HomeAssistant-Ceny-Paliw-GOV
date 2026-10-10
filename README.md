@@ -6,11 +6,12 @@
 
 Niestandardowa integracja Home Assistant autorstwa **Q-Tronic**. Pobiera maksymalne detaliczne ceny paliw publikowane przez Ministerstwo Energii na gov.pl, tworzy encje dla cen dzisiejszych i jutrzejszych, prowadzi lokalną historię oraz wysyła konfigurowalne powiadomienia na telefony z aplikacją Home Assistant Companion.
 
-Aktualna wersja: **v1.6.2**.
+Aktualna wersja: **v1.6.3**.
 
 ## Spis treści
 
 - [Najważniejsze funkcje](#najważniejsze-funkcje)
+- [Poprawki w v1.6.3](#poprawki-w-v163)
 - [Poprawki w v1.6.2](#poprawki-w-v162)
 - [Ustawienia telefonu dostępne na dashboardzie](#ustawienia-telefonu-dostępne-na-dashboardzie)
 - [Indywidualny tryb, godzina i oczekiwanie na publikację](#indywidualny-tryb-godzina-i-oczekiwanie-na-publikację)
@@ -65,6 +66,18 @@ Nie opublikowano
 ```
 
 Ikony encji zmiany ceny reagują na trend. Wzrost pokazuje ikonę wzrostu, spadek ikonę spadku, brak zmiany ikonę neutralną, a brak publikacji ikonę informacyjną.
+
+## Poprawki w v1.6.3
+
+Wydanie 1.6.3 usuwa błędy automatycznej walidacji 1.6.2, dopracowuje
+migrację starych powiadomień i ochronę ustawień telefonów w przypadku
+równoległych zmian. Sensory `binary_sensor.*jutro_drozej` pokazują
+`unknown`, jeśli brakuje ceny na porównywany dzień. Usunięcie integracji
+usuwa jej zapisane pliki historii i stanu powiadomień.
+
+Wzmocniono wykrywanie nowych publikacji GOV.PL o nierozpoznanym formacie
+oraz awaryjne odtwarzanie domyślnej treści po błędach szablonu.
+Dotychczasowa ikona, identyfikatory encji i ustawienia użytkownika są zachowane.
 
 ## Poprawki w v1.6.2
 

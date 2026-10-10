@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_NOTIFICATION_DEVICES,
+    CONF_NOTIFICATIONS_ENABLED,
     CONF_NOTIFICATION_FUELS,
     CONF_NOTIFICATION_TIME,
     DEFAULT_NOTIFICATION_FUELS,
@@ -175,8 +176,17 @@ def normalized_options(options: Mapping[str, Any]) -> dict[str, Any]:
         for item in raw_devices:
             if not isinstance(item, Mapping):
                 continue
+            candidate = dict(item)
+            if (
+                result.get(CONF_NOTIFICATIONS_ENABLED) is False
+                and DEVICE_NOTIFICATION_TIME not in candidate
+                and DEVICE_FUELS not in candidate
+            ):
+                # Before v1.4 the global switch overrode enabled phones.
+                # Already migrated devices keep their independent setting.
+                candidate[DEVICE_ENABLED] = False
             normalized = normalize_device(
-                item,
+                candidate,
                 fallback_time=fallback_time,
                 fallback_fuels=fallback_fuels,
             )
@@ -219,6 +229,46 @@ def phone_entity_unique_ids(target: str) -> set[str]:
         f"ceny_paliw_gov_pl_phone_{key}_last_notification_status",
         f"ceny_paliw_gov_pl_phone_{key}_last_notification_at",
     }
+
+
+def merge_working_options(
+    baseline: Mapping[str, Any],
+    working: Mapping[str, Any],
+    latest: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Apply only edits made in a flow, preserving newer dashboard changes."""
+    initial = normalized_options(baseline)
+    edited = normalized_options(working)
+    merged = normalized_options(latest)
+
+    for key, value in edited.items():
+        if key == CONF_NOTIFICATION_DEVICES:
+            continue
+        if key not in initial or value != initial[key]:
+            merged[key] = deepcopy(value)
+
+    def mapping(options: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+        return {str(item[DEVICE_SERVICE]): dict(item) for item in configured_devices(options)}
+
+    old_devices = mapping(initial)
+    working_devices = mapping(edited)
+    current_devices = mapping(merged)
+    for target in old_devices.keys() | working_devices.keys():
+        previous = old_devices.get(target)
+        change = working_devices.get(target)
+        if previous == change:
+            continue
+        if change is None:
+            current_devices.pop(target, None)
+            continue
+        if previous is None or target not in current_devices:
+            current_devices[target] = deepcopy(change)
+            continue
+        for key, value in change.items():
+            if key not in previous or value != previous[key]:
+                current_devices[target][key] = deepcopy(value)
+    merged[CONF_NOTIFICATION_DEVICES] = list(current_devices.values())
+    return merged
 
 
 async def async_update_device_options(

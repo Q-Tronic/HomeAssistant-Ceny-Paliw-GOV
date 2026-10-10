@@ -8,8 +8,17 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.storage import Store
 
-from .const import DOMAIN, NAME
+from .const import (
+    DOMAIN,
+    NAME,
+    HISTORY_STORAGE_KEY_PREFIX,
+    HISTORY_STORAGE_VERSION,
+    NOTIFICATION_STORAGE_KEY_PREFIX,
+    NOTIFICATION_STORAGE_VERSION,
+)
 from .coordinator import FuelPriceCoordinator
 from .history import FuelPriceHistoryManager
 from .notifications import FuelPriceNotificationManager
@@ -92,3 +101,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await runtime.notifications.async_stop()
     await runtime.history.async_stop()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove local data when the user deletes the integration."""
+    await Store(
+        hass,
+        NOTIFICATION_STORAGE_VERSION,
+        f"{NOTIFICATION_STORAGE_KEY_PREFIX}.{entry.entry_id}",
+    ).async_remove()
+    await Store(
+        hass,
+        HISTORY_STORAGE_VERSION,
+        f"{HISTORY_STORAGE_KEY_PREFIX}.{entry.entry_id}",
+    ).async_remove()
+    ir.async_delete_issue(hass, DOMAIN, "parser_error")

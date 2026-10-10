@@ -1,7 +1,6 @@
 {
   "domain": "ceny_paliw_gov_pl",
   "name": "Maksymalne Ceny Paliw GOV.PL",
-  "version": "1.6.2",
   "codeowners": [
     "@Q-Tronic"
   ],
@@ -12,5 +11,6 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Q-Tronic/HomeAssistant-Ceny-Paliw-GOV/issues",
   "requirements": [],
-  "single_config_entry": true
+  "single_config_entry": true,
+  "version": "1.6.3"
 }

@@ -79,6 +79,10 @@ jobs:
       - name: Zainstaluj Home Assistant
         run: python -m pip install --upgrade pip "homeassistant==${{ matrix.ha_version }}"
 
+      - name: Uzgodnij zależności DNS starszego HA
+        if: matrix.ha_version == '2025.8.0'
+        run: python -m pip install "aiodns==3.6.1" "pycares<5"
+
       - name: Sprawdź import wszystkich modułów integracji
         run: |
           python - <<'PY'

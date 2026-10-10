@@ -12,7 +12,6 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
-from homeassistant.exceptions import TemplateError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_change
@@ -211,7 +210,8 @@ def _render_custom_template(
                 parse_result=False,
             )
         ).strip()
-    except TemplateError as err:
+    except Exception as err:  # noqa: BLE001
+        # Fail safely, including unexpected errors from custom templates.
         _LOGGER.error("Błąd szablonu powiadomienia: %s", err)
         return None
 

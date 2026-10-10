@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.3
+
+- naprawiono błędy testów, zgodność Hassfest i problem zależności DNS w CI dla HA 2025.8.0
+- poprawiono brakujące dane binarnych sensorów trendu oraz czyszczenie `.storage` przy usuwaniu integracji
+- zabezpieczono migrację wyłączonych starych powiadomień i równoległe edytowanie ustawień telefonów
+- ulepszono wykrywanie niezrozumiałych nowych publikacji i awaryjną obsługę szablonów
+- dodano testy regresyjne i zachowano dotychczasowe ikony
+
 ## 1.6.2
 
 - zmieniono bezpośredni import `probatio` na kompatybilny `voluptuous as vol`

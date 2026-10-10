@@ -6,7 +6,7 @@ from datetime import timedelta
 
 DOMAIN = "ceny_paliw_gov_pl"
 NAME = "Maksymalne Ceny Paliw GOV.PL"
-VERSION = "1.6.2"
+VERSION = "1.6.3"
 AUTHOR = "Q-Tronic"
 
 NEWS_URL = "https://www.gov.pl/web/energia/wiadomosci"

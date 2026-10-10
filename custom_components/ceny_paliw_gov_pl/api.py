@@ -468,6 +468,22 @@ def _parse_news_page_diagnostics(html: str) -> _ParseDiagnostics:
             )
         )
 
+    parsed_urls = {period.source_url for period in periods}
+    rejected_titles = {(item.title, item.published_on) for item in rejected}
+    for link in parser.links:
+        if not link.href or "/web/energia/" not in link.href:
+            continue
+        if not re.search(r"maksymaln\w*\s+cen\w*.*paliw", link.text, re.IGNORECASE):
+            continue
+        if urljoin(NEWS_URL, link.href) in parsed_urls:
+            continue
+        nearby = text[max(0, link.end_position - 240):link.end_position]
+        published_on = _publication_date(nearby)
+        if published_on is None or (link.text, published_on) in rejected_titles:
+            continue
+        rejected.append(_RejectedPublication(link.text, published_on))
+        rejected_titles.add((link.text, published_on))
+
     periods.sort(
         key=lambda item: (
             item.published_on or date.min,

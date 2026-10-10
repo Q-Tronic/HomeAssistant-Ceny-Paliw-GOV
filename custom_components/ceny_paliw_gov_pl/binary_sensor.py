@@ -60,10 +60,10 @@ class FuelMoreExpensiveBinarySensor(
         return (tomorrow - today).quantize(Decimal("0.01"))
 
     @property
-    def is_on(self) -> bool:
-        """Return true only when tomorrow is more expensive."""
+    def is_on(self) -> bool | None:
+        """Return unknown when one of the compared prices is missing."""
         difference = self._difference()
-        return bool(difference is not None and difference > 0)
+        return None if difference is None else difference > 0
 
     @property
     def icon(self) -> str:
