@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.components.diagnostics import async_redact_data
 
 from .api import PricePeriod
 from .const import (
@@ -30,8 +31,11 @@ from .const import (
 )
 from .phone_config import configured_devices
 
+_DIAGNOSTIC_PHONE_REDACTIONS = {DEVICE_SERVICE, DEVICE_NAME}
+
 
 def _period_as_dict(period: PricePeriod | None) -> dict[str, Any] | None:
+    """Convert a price period into diagnostics-safe data."""
     if period is None:
         return None
     return {
@@ -47,17 +51,38 @@ def _period_as_dict(period: PricePeriod | None) -> dict[str, Any] | None:
 
 
 def _summary_as_dict(summary: dict[str, Any]) -> dict[str, Any]:
+    """Convert Decimal values in a history summary."""
     result: dict[str, Any] = {}
     for key, value in summary.items():
         result[key] = float(value) if isinstance(value, Decimal) else value
     return result
 
 
+def _phone_diagnostics(device: dict[str, Any], notifications: Any) -> dict[str, Any]:
+    """Build diagnostics for one phone without exposing its identity."""
+    target = str(device.get(DEVICE_SERVICE, ""))
+    raw = {
+        "service": target,
+        "name": device.get(DEVICE_NAME),
+        "enabled": device.get(DEVICE_ENABLED, True),
+        "notification_time": device.get(DEVICE_NOTIFICATION_TIME),
+        "fuels": device.get(DEVICE_FUELS),
+        "last_notification_status": notifications.phone_status(target),
+        "last_notification_at": (
+            notifications.phone_last_sent_at(target).isoformat()
+            if notifications.phone_last_sent_at(target)
+            else None
+        ),
+        "waiting_for_publication": notifications.phone_waiting(target),
+    }
+    return async_redact_data(raw, _DIAGNOSTIC_PHONE_REDACTIONS)
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant,
     entry: ConfigEntry,
 ) -> dict[str, Any]:
-    """Return diagnostics for a config entry."""
+    """Return diagnostics for a config entry without personal phone identifiers."""
     runtime = entry.runtime_data
     coordinator = runtime.coordinator
     history = runtime.history
@@ -113,7 +138,7 @@ async def async_get_config_entry_diagnostics(
             "custom_message_configured": bool(
                 str(entry.options.get(CONF_NOTIFICATION_CUSTOM_MESSAGE, "")).strip()
             ),
-            "missing_enabled_targets": notifications.missing_enabled_targets,
+            "missing_enabled_targets_count": len(notifications.missing_enabled_targets),
             "last_send_status": notifications.last_send_status,
             "last_send_at": (
                 notifications.last_send_at.isoformat()
@@ -121,28 +146,7 @@ async def async_get_config_entry_diagnostics(
                 else None
             ),
             "devices": [
-                {
-                    "service": device.get(DEVICE_SERVICE),
-                    "name": device.get(DEVICE_NAME),
-                    "enabled": device.get(DEVICE_ENABLED, True),
-                    "notification_time": device.get(DEVICE_NOTIFICATION_TIME),
-                    "fuels": device.get(DEVICE_FUELS),
-                    "last_notification_status": notifications.phone_status(
-                        str(device.get(DEVICE_SERVICE, ""))
-                    ),
-                    "last_notification_at": (
-                        notifications.phone_last_sent_at(
-                            str(device.get(DEVICE_SERVICE, ""))
-                        ).isoformat()
-                        if notifications.phone_last_sent_at(
-                            str(device.get(DEVICE_SERVICE, ""))
-                        )
-                        else None
-                    ),
-                    "waiting_for_publication": notifications.phone_waiting(
-                        str(device.get(DEVICE_SERVICE, ""))
-                    ),
-                }
+                _phone_diagnostics(device, notifications)
                 for device in configured_devices(entry.options)
             ],
         },

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.1
+
+- Zwiększono prywatność danych diagnostycznych.
+- Nazwy telefonów są maskowane w diagnostyce.
+- Identyfikatory usług `notify.mobile_app_*` są maskowane w diagnostyce.
+- Lista brakujących celów powiadomień została zastąpiona samą liczbą brakujących celów.
+- Dodano test regresyjny chroniący przed ponownym ujawnieniem nazw i identyfikatorów telefonów w diagnostyce.
+- Bez zmian w działaniu powiadomień, harmonogramów i encji użytkownika.
+
 ## 1.5.0
 
 - Dodano przycisk `Wyślij powiadomienie teraz` jako osobną encję `button` dla każdego skonfigurowanego telefonu.
