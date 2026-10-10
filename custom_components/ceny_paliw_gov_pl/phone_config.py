@@ -85,6 +85,28 @@ def fuels_for_selection_option(option: str) -> list[str]:
     return list(FUEL_SELECTION_OPTIONS.get(option, tuple(FUELS)))
 
 
+
+def normalize_target_selection(value: Any) -> list[str]:
+    """Normalize a select selector value to a stable list of notification targets."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        candidates = [value]
+    elif isinstance(value, (list, tuple, set)):
+        candidates = list(value)
+    else:
+        return []
+
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in candidates:
+        target = str(item).strip()
+        if not target or target in seen:
+            continue
+        seen.add(target)
+        result.append(target)
+    return result
+
 def normalize_device(
     device: Mapping[str, Any],
     *,

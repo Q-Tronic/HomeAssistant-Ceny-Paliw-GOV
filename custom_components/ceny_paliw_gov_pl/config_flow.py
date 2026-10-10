@@ -62,6 +62,7 @@ from .notifications import (
 from .phone_config import (
     default_device_name,
     normalize_fuels,
+    normalize_target_selection,
     normalize_time_string,
     normalized_options,
 )
@@ -372,7 +373,13 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
         selected_targets = list(devices)
 
         if user_input is not None:
-            selected_targets = list(user_input.get(CONF_NOTIFICATION_SERVICES, []))
+            requested_targets = normalize_target_selection(
+                user_input.get(CONF_NOTIFICATION_SERVICES)
+            )
+            allowed_targets = {option["value"] for option in self._target_options()}
+            selected_targets = [
+                target for target in requested_targets if target in allowed_targets
+            ]
             updated_devices: list[dict[str, Any]] = []
             for target in selected_targets:
                 current = devices.get(target)

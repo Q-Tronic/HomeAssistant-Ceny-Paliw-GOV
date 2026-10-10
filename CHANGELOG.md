@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.2
+
+- poprawiono zapisywanie konfiguracji telefonów
+- usunięto konflikt podwójnego przeładowania integracji po zmianie opcji
+- dodano bezpieczną normalizację wyboru jednego lub wielu telefonów
+- dodano testy regresyjne dla konfiguracji telefonów
+
+
 ## 1.5.1
 
 - Zwiększono prywatność danych diagnostycznych.
