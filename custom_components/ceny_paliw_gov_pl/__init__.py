@@ -36,6 +36,27 @@ class FuelPricesRuntimeData:
     coordinator: FuelPriceCoordinator
     history: FuelPriceHistoryManager
     notifications: FuelPriceNotificationManager
+    phone_targets: frozenset[str]
+
+
+
+def _configured_phone_targets(entry: ConfigEntry) -> frozenset[str]:
+    """Return the configured notify targets that need dashboard entities."""
+    return frozenset(
+        str(device.get("service", ""))
+        for device in configured_devices(entry.options)
+        if device.get("service")
+    )
+
+
+async def _async_options_update_listener(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """Reload only when phones are added or removed."""
+    runtime: FuelPricesRuntimeData = entry.runtime_data
+    current_targets = _configured_phone_targets(entry)
+    if current_targets != runtime.phone_targets:
+        await hass.config_entries.async_reload(entry.entry_id)
 
 
 def _cleanup_removed_phone_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -79,7 +100,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator=coordinator,
         history=history,
         notifications=notifications,
+        phone_targets=_configured_phone_targets(entry),
     )
+    entry.async_on_unload(entry.add_update_listener(_async_options_update_listener))
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await notifications.async_start()

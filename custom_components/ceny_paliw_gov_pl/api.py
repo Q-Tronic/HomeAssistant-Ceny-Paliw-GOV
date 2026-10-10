@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from html.parser import HTMLParser
 import re
@@ -66,6 +66,22 @@ class _Link:
     end_position: int
     text: str
     href: str
+
+
+@dataclass(frozen=True, slots=True)
+class _RejectedPublication:
+    """Fuel-price publication candidate that could not be assigned a validity period."""
+
+    title: str
+    published_on: date | None
+
+
+@dataclass(frozen=True, slots=True)
+class _ParseDiagnostics:
+    """Internal parser diagnostics used to detect gov.pl layout changes."""
+
+    periods: tuple[PricePeriod, ...]
+    rejected: tuple[_RejectedPublication, ...]
 
 
 class _NewsPageParser(HTMLParser):
@@ -361,13 +377,14 @@ def _nearest_article_link(links: list[_Link], match_start: int) -> _Link | None:
     return max(candidates, key=lambda item: item.end_position)
 
 
-def parse_news_page(html: str) -> list[PricePeriod]:
-    """Parse fuel price periods from the Ministerstwo Energii news page."""
+def _parse_news_page_diagnostics(html: str) -> _ParseDiagnostics:
+    """Parse price periods and retain candidates rejected by date parsing."""
     parser = _NewsPageParser()
     parser.feed(html)
     text = parser.text
 
     periods: list[PricePeriod] = []
+    rejected: list[_RejectedPublication] = []
     seen: set[tuple[date, date, Decimal, Decimal, Decimal]] = set()
 
     for match in _PRICE_RE.finditer(text):
@@ -378,6 +395,12 @@ def parse_news_page(html: str) -> list[PricePeriod]:
         published_on = _publication_date(before)
         validity = _parse_validity(title_context, after, published_on)
         if validity is None:
+            rejected.append(
+                _RejectedPublication(
+                    title=(article_link.text if article_link is not None else "Nieznana publikacja"),
+                    published_on=published_on,
+                )
+            )
             continue
 
         valid_from, valid_to = validity
@@ -419,7 +442,12 @@ def parse_news_page(html: str) -> list[PricePeriod]:
         ),
         reverse=True,
     )
-    return periods
+    return _ParseDiagnostics(tuple(periods), tuple(rejected))
+
+
+def parse_news_page(html: str) -> list[PricePeriod]:
+    """Parse fuel price periods from the Ministerstwo Energii news page."""
+    return list(_parse_news_page_diagnostics(html).periods)
 
 
 def _resolve_period(periods: list[PricePeriod], target: date) -> PricePeriod | None:
@@ -455,10 +483,28 @@ class FuelPriceApi:
         except (aiohttp.ClientError, TimeoutError) as err:
             raise FuelPriceApiError(f"Błąd pobierania danych z gov.pl: {err}") from err
 
-        periods = parse_news_page(html)
+        diagnostics = _parse_news_page_diagnostics(html)
+        periods = list(diagnostics.periods)
         if not periods:
             raise FuelPriceParseError(
                 "Nie znaleziono żadnych publikacji z cenami paliw na stronie gov.pl"
+            )
+
+        recent_cutoff = today - timedelta(days=1)
+        recent_rejected = [
+            item
+            for item in diagnostics.rejected
+            if item.published_on is not None
+            and recent_cutoff <= item.published_on <= today
+        ]
+        if recent_rejected:
+            newest = max(
+                recent_rejected,
+                key=lambda item: item.published_on or date.min,
+            )
+            raise FuelPriceParseError(
+                "Wykryto nową publikację z cenami, której zakresu obowiązywania "
+                f"nie udało się rozpoznać: {newest.title}"
             )
 
         tomorrow = date.fromordinal(today.toordinal() + 1)

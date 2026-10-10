@@ -44,7 +44,6 @@ class PhoneNotificationSwitch(SwitchEntity):
     """Enable or disable automatic fuel-price notifications for one phone."""
 
     _attr_has_entity_name = False
-    _attr_icon = "mdi:bell"
     _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, entry: ConfigEntry, target: str) -> None:
@@ -71,6 +70,11 @@ class PhoneNotificationSwitch(SwitchEntity):
         """Return whether automatic notifications are enabled for this phone."""
         device = get_device(self.entry.options, self.target)
         return bool(device and device.get(DEVICE_ENABLED, True))
+
+    @property
+    def icon(self) -> str:
+        """Return an icon reflecting the current notification state."""
+        return "mdi:bell-ring-outline" if self.is_on else "mdi:bell-off-outline"
 
     async def async_turn_on(self, **kwargs: object) -> None:
         """Enable automatic notifications for this phone."""

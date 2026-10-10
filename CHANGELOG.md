@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.5.0
+
+- Dodano przycisk `Wyślij powiadomienie teraz` jako osobną encję `button` dla każdego skonfigurowanego telefonu.
+- Dodano diagnostyczny sensor statusu ostatniego powiadomienia dla każdego telefonu.
+- Dodano diagnostyczny sensor czasu ostatniego poprawnie wysłanego powiadomienia dla każdego telefonu.
+- Dodano diagnostyczny sensor ostatniego udanego pobrania danych z GOV.PL.
+- Dodano trwały identyfikator dostarczonej publikacji osobno dla każdego telefonu, co chroni przed ponowną automatyczną wysyłką po restarcie Home Assistanta.
+- Rozszerzono Repairs o wykrywanie świeżej publikacji z cenami, której nowego formatu zakresu dat parser nie potrafi rozpoznać.
+- Dodano GitHub Actions uruchamiane przy każdym pushu i pull requeście.
+- Dodano automatyczną kontrolę składni Python, testów parsera, JSON, YAML oraz spójności wersji.
+- Dodano skrypt `scripts/check_version_consistency.py`, który porównuje wersję w `manifest.json`, `const.py`, `CHANGELOG.md`, `README.md` i pliku Release.
+- Dodano kompletny przykład dashboardu.
+- Dodano przykład kolorowych kart dashboardu zależnych od trendu ceny.
+- Rozszerzono przykład dashboardu telefonu o status, czas ostatniej wysyłki i przycisk ręcznej wysyłki.
+- Rozszerzono dynamiczne ikony encji dla trendów, statusów i przełączników powiadomień.
+- Zaktualizowano diagnostykę integracji o stan każdego telefonu.
+
 ## 1.4.0
 
 - Zmieniono nazwę integracji na `Maksymalne Ceny Paliw GOV.PL`.

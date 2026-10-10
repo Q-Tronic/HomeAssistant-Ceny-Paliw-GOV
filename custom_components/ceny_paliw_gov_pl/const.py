@@ -6,7 +6,7 @@ from datetime import timedelta
 
 DOMAIN = "ceny_paliw_gov_pl"
 NAME = "Maksymalne Ceny Paliw GOV.PL"
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 AUTHOR = "Q-Tronic"
 
 NEWS_URL = "https://www.gov.pl/web/energia/wiadomosci"
@@ -51,6 +51,14 @@ UNIT_PRICE = "zł/l"
 UNIT_GROSZ = "gr"
 
 EVENT_PRICES_UPDATED = f"{DOMAIN}_updated"
+
+SIGNAL_NOTIFICATION_STATE_UPDATED = f"{DOMAIN}_notification_state_updated"
+
+PHONE_STATUS_NONE = "Brak wysyłki"
+PHONE_STATUS_WAITING = "Oczekuje na publikację"
+PHONE_STATUS_SENT = "Wysłano"
+PHONE_STATUS_ERROR = "Błąd"
+PHONE_STATUS_FILTERED = "Pominięto filtrem"
 
 CONF_UPDATE_INTERVAL_MINUTES = "update_interval_minutes"
 CONF_NOTIFICATION_DEVICES = "notification_devices"

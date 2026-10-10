@@ -8,3 +8,9 @@ entities:
     name: Godzina wysyłki
   - entity: select.nazwa_telefonu_paliwa_w_powiadomieniu
     name: Paliwa w wiadomości
+  - entity: sensor.nazwa_telefonu_status_ostatniego_powiadomienia
+    name: Status ostatniego powiadomienia
+  - entity: sensor.nazwa_telefonu_ostatnie_powiadomienie
+    name: Ostatnio wysłano
+  - entity: button.nazwa_telefonu_wyslij_powiadomienie_teraz
+    name: Wyślij powiadomienie teraz

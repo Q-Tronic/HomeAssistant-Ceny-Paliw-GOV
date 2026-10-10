@@ -127,6 +127,21 @@ async def async_get_config_entry_diagnostics(
                     "enabled": device.get(DEVICE_ENABLED, True),
                     "notification_time": device.get(DEVICE_NOTIFICATION_TIME),
                     "fuels": device.get(DEVICE_FUELS),
+                    "last_notification_status": notifications.phone_status(
+                        str(device.get(DEVICE_SERVICE, ""))
+                    ),
+                    "last_notification_at": (
+                        notifications.phone_last_sent_at(
+                            str(device.get(DEVICE_SERVICE, ""))
+                        ).isoformat()
+                        if notifications.phone_last_sent_at(
+                            str(device.get(DEVICE_SERVICE, ""))
+                        )
+                        else None
+                    ),
+                    "waiting_for_publication": notifications.phone_waiting(
+                        str(device.get(DEVICE_SERVICE, ""))
+                    ),
                 }
                 for device in configured_devices(entry.options)
             ],

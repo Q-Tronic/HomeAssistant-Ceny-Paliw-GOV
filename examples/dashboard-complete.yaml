@@ -1,0 +1,79 @@
+# Kompletny przykładowy widok dashboardu.
+# Identyfikatory encji telefonu są przykładami. Po dodaniu telefonu podmień je
+# na identyfikatory utworzone w Twoim Home Assistant.
+title: Maksymalne Ceny Paliw
+views:
+  - title: Paliwa
+    path: paliwa
+    icon: mdi:gas-station
+    cards:
+      - type: entities
+        title: Maksymalne Ceny Paliw GOV.PL
+        entities:
+          - entity: sensor.status_publikacji_cen_paliw
+            name: Status publikacji
+          - entity: sensor.ostatnie_udane_pobranie_gov_pl
+            name: Ostatnie udane pobranie
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: entities
+            title: PB95
+            entities:
+              - sensor.cena_pb95_dzisiaj
+              - sensor.cena_pb95_jutro
+              - sensor.pb95_zmiana_ceny
+          - type: entities
+            title: PB98
+            entities:
+              - sensor.cena_pb98_dzisiaj
+              - sensor.cena_pb98_jutro
+              - sensor.pb98_zmiana_ceny
+          - type: entities
+            title: ON
+            entities:
+              - sensor.cena_on_dzisiaj
+              - sensor.cena_on_jutro
+              - sensor.on_zmiana_ceny
+
+      - type: horizontal-stack
+        cards:
+          - type: button
+            entity: button.sprawdz_ceny_teraz
+            name: Sprawdź ceny
+            icon: mdi:refresh
+          - type: button
+            entity: button.wyslij_wszystkim_teraz
+            name: Wyślij wszystkim
+            icon: mdi:send
+
+      - type: entities
+        title: Telefon użytkownika
+        entities:
+          - entity: switch.telefon_uzytkownika_powiadomienia
+            name: Powiadomienia
+          - entity: time.telefon_uzytkownika_godzina_powiadomienia
+            name: Godzina
+          - entity: select.telefon_uzytkownika_paliwa_w_powiadomieniu
+            name: Paliwa
+          - entity: sensor.telefon_uzytkownika_status_ostatniego_powiadomienia
+            name: Status
+          - entity: sensor.telefon_uzytkownika_ostatnie_powiadomienie
+            name: Ostatnio wysłano
+          - entity: button.telefon_uzytkownika_wyslij_powiadomienie_teraz
+            name: Wyślij teraz
+
+      - type: entities
+        title: Historia cen
+        entities:
+          - sensor.srednia_pb95_7_dni
+          - sensor.srednia_pb95_30_dni
+          - sensor.srednia_pb95_90_dni
+          - sensor.srednia_pb98_7_dni
+          - sensor.srednia_pb98_30_dni
+          - sensor.srednia_pb98_90_dni
+          - sensor.srednia_on_7_dni
+          - sensor.srednia_on_30_dni
+          - sensor.srednia_on_90_dni

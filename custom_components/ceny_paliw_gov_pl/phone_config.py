@@ -161,6 +161,9 @@ def phone_entity_unique_ids(target: str) -> set[str]:
         f"ceny_paliw_gov_pl_phone_{key}_enabled",
         f"ceny_paliw_gov_pl_phone_{key}_time",
         f"ceny_paliw_gov_pl_phone_{key}_fuels",
+        f"ceny_paliw_gov_pl_phone_{key}_send_now",
+        f"ceny_paliw_gov_pl_phone_{key}_last_notification_status",
+        f"ceny_paliw_gov_pl_phone_{key}_last_notification_at",
     }
 
 

@@ -1,0 +1,157 @@
+# Kolorowe karty trendu wyłącznie z wbudowanych kart Home Assistant.
+# Dla każdego paliwa widoczna jest tylko jedna karta zależnie od stanu.
+type: vertical-stack
+cards:
+  - type: heading
+    heading: Trend cen na jutro
+    icon: mdi:chart-line
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: binary_sensor.pb95_jutro_drozej
+        state: "on"
+    card:
+      type: tile
+      entity: sensor.pb95_zmiana_ceny
+      name: PB95
+      color: red
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: binary_sensor.pb95_jutro_drozej
+        state: "off"
+      - condition: state
+        entity: sensor.pb95_zmiana_ceny
+        state_not: "bez zmian"
+      - condition: state
+        entity: sensor.pb95_zmiana_ceny
+        state_not: "Nie opublikowano"
+    card:
+      type: tile
+      entity: sensor.pb95_zmiana_ceny
+      name: PB95
+      color: green
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: sensor.pb95_zmiana_ceny
+        state: "bez zmian"
+    card:
+      type: tile
+      entity: sensor.pb95_zmiana_ceny
+      name: PB95
+      color: grey
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: sensor.pb95_zmiana_ceny
+        state: "Nie opublikowano"
+    card:
+      type: tile
+      entity: sensor.pb95_zmiana_ceny
+      name: PB95
+      color: amber
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: binary_sensor.pb98_jutro_drozej
+        state: "on"
+    card:
+      type: tile
+      entity: sensor.pb98_zmiana_ceny
+      name: PB98
+      color: red
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: binary_sensor.pb98_jutro_drozej
+        state: "off"
+      - condition: state
+        entity: sensor.pb98_zmiana_ceny
+        state_not: "bez zmian"
+      - condition: state
+        entity: sensor.pb98_zmiana_ceny
+        state_not: "Nie opublikowano"
+    card:
+      type: tile
+      entity: sensor.pb98_zmiana_ceny
+      name: PB98
+      color: green
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: sensor.pb98_zmiana_ceny
+        state: "bez zmian"
+    card:
+      type: tile
+      entity: sensor.pb98_zmiana_ceny
+      name: PB98
+      color: grey
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: sensor.pb98_zmiana_ceny
+        state: "Nie opublikowano"
+    card:
+      type: tile
+      entity: sensor.pb98_zmiana_ceny
+      name: PB98
+      color: amber
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: binary_sensor.on_jutro_drozej
+        state: "on"
+    card:
+      type: tile
+      entity: sensor.on_zmiana_ceny
+      name: ON
+      color: red
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: binary_sensor.on_jutro_drozej
+        state: "off"
+      - condition: state
+        entity: sensor.on_zmiana_ceny
+        state_not: "bez zmian"
+      - condition: state
+        entity: sensor.on_zmiana_ceny
+        state_not: "Nie opublikowano"
+    card:
+      type: tile
+      entity: sensor.on_zmiana_ceny
+      name: ON
+      color: green
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: sensor.on_zmiana_ceny
+        state: "bez zmian"
+    card:
+      type: tile
+      entity: sensor.on_zmiana_ceny
+      name: ON
+      color: grey
+
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: sensor.on_zmiana_ceny
+        state: "Nie opublikowano"
+    card:
+      type: tile
+      entity: sensor.on_zmiana_ceny
+      name: ON
+      color: amber

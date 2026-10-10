@@ -6,10 +6,15 @@ from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Literal
 
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -18,6 +23,8 @@ from homeassistant.util import dt as dt_util
 from .api import FuelPriceData, PricePeriod
 from .const import (
     AUTHOR,
+    DEVICE_NAME,
+    DEVICE_SERVICE,
     DOMAIN,
     EVENT_PRICES_UPDATED,
     FUEL_NAMES,
@@ -27,7 +34,13 @@ from .const import (
     FUELS,
     HISTORY_PERIODS,
     NAME,
+    PHONE_STATUS_ERROR,
+    PHONE_STATUS_FILTERED,
+    PHONE_STATUS_NONE,
+    PHONE_STATUS_SENT,
+    PHONE_STATUS_WAITING,
     NEWS_URL,
+    SIGNAL_NOTIFICATION_STATE_UPDATED,
     STALE_DATA_AFTER,
     STATUS_DOWNLOAD_ERROR,
     STATUS_NO_CHANGE,
@@ -41,6 +54,7 @@ from .const import (
 )
 from .coordinator import FuelPriceCoordinator
 from .history import FuelPriceHistoryManager
+from .phone_config import configured_devices, default_device_name, phone_key
 
 DayKind = Literal["today", "tomorrow"]
 SensorKind = Literal["price", "change"]
@@ -148,11 +162,19 @@ async def async_setup_entry(
         FuelPriceSensor(coordinator, description) for description in SENSORS
     ]
     entities.append(FuelPricesStatusSensor(entry, coordinator))
+    entities.append(FuelPricesLastSuccessfulFetchSensor(coordinator))
     entities.extend(
         FuelHistoryAverageSensor(coordinator, history, fuel, days)
         for fuel in FUELS
         for days in HISTORY_PERIODS
     )
+    for device in configured_devices(entry.options):
+        target = str(device.get(DEVICE_SERVICE, ""))
+        if not target:
+            continue
+        display_name = str(device.get(DEVICE_NAME) or default_device_name(target))
+        entities.append(PhoneNotificationStatusSensor(entry, target, display_name))
+        entities.append(PhoneLastNotificationTimeSensor(entry, target, display_name))
     async_add_entities(entities)
 
 
@@ -423,6 +445,162 @@ class FuelPricesStatusSensor(
             "brakujace_cele_powiadomien": runtime.notifications.missing_enabled_targets,
             "zdarzenie_aktualizacji": EVENT_PRICES_UPDATED,
             "zrodlo": NEWS_URL,
+        }
+
+
+class FuelPricesLastSuccessfulFetchSensor(
+    FuelEntityBase,
+    CoordinatorEntity[FuelPriceCoordinator],
+    SensorEntity,
+):
+    """Timestamp of the last successful gov.pl fetch."""
+
+    _attr_has_entity_name = False
+    _attr_name = "Ostatnie udane pobranie GOV.PL"
+    _attr_unique_id = f"{DOMAIN}_last_successful_fetch"
+    _attr_icon = "mdi:cloud-check-outline"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: FuelPriceCoordinator) -> None:
+        super().__init__(coordinator)
+
+    @property
+    def available(self) -> bool:
+        """Keep diagnostic timestamp available after a failed refresh."""
+        return True
+
+    @property
+    def native_value(self):
+        """Return last successful update timestamp."""
+        if self.coordinator.last_successful_update is not None:
+            return self.coordinator.last_successful_update
+        data = self.coordinator.data
+        return data.fetched_at if data is not None else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return source and last failure details."""
+        return {
+            "zrodlo": NEWS_URL,
+            "ostatni_blad": self.coordinator.last_error_message,
+            "typ_ostatniego_bledu": self.coordinator.last_error_kind,
+        }
+
+
+class PhoneNotificationSensorBase(SensorEntity):
+    """Base sensor for one configured notification phone."""
+
+    _attr_has_entity_name = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self,
+        entry: ConfigEntry,
+        target: str,
+        display_name: str,
+    ) -> None:
+        self.entry = entry
+        self.target = target
+        self.display_name = display_name
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return integration device information."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, DOMAIN)},
+            name=NAME,
+            manufacturer=AUTHOR,
+            model="Maksymalne ceny detaliczne paliw",
+            configuration_url=NEWS_URL,
+        )
+
+    async def async_added_to_hass(self) -> None:
+        """Listen for persisted notification state changes."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                SIGNAL_NOTIFICATION_STATE_UPDATED,
+                self._handle_notification_state_update,
+            )
+        )
+
+    @callback
+    def _handle_notification_state_update(self, target: str) -> None:
+        if target == self.target:
+            self.async_write_ha_state()
+
+
+class PhoneNotificationStatusSensor(PhoneNotificationSensorBase):
+    """Last notification status for one configured phone."""
+
+    def __init__(
+        self,
+        entry: ConfigEntry,
+        target: str,
+        display_name: str,
+    ) -> None:
+        super().__init__(entry, target, display_name)
+        self._attr_unique_id = (
+            f"{DOMAIN}_phone_{phone_key(target)}_last_notification_status"
+        )
+        self._attr_name = f"{display_name} status ostatniego powiadomienia"
+
+    @property
+    def native_value(self) -> str:
+        return self.entry.runtime_data.notifications.phone_status(self.target)
+
+    @property
+    def icon(self) -> str:
+        status = self.native_value
+        if status == PHONE_STATUS_SENT:
+            return "mdi:check-circle-outline"
+        if status == PHONE_STATUS_WAITING:
+            return "mdi:clock-alert-outline"
+        if status == PHONE_STATUS_ERROR:
+            return "mdi:alert-circle-outline"
+        if status == PHONE_STATUS_FILTERED:
+            return "mdi:filter-off-outline"
+        if status == PHONE_STATUS_NONE:
+            return "mdi:bell-outline"
+        return "mdi:information-outline"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        notifications = self.entry.runtime_data.notifications
+        return {
+            "telefon": self.display_name,
+            "cel": self.target,
+            "oczekuje_na_publikacje": notifications.phone_waiting(self.target),
+        }
+
+
+class PhoneLastNotificationTimeSensor(PhoneNotificationSensorBase):
+    """Timestamp of the last successfully sent notification for one phone."""
+
+    _attr_icon = "mdi:clock-check-outline"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(
+        self,
+        entry: ConfigEntry,
+        target: str,
+        display_name: str,
+    ) -> None:
+        super().__init__(entry, target, display_name)
+        self._attr_unique_id = f"{DOMAIN}_phone_{phone_key(target)}_last_notification_at"
+        self._attr_name = f"{display_name} ostatnie powiadomienie"
+
+    @property
+    def native_value(self):
+        return self.entry.runtime_data.notifications.phone_last_sent_at(self.target)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "telefon": self.display_name,
+            "cel": self.target,
         }
 
 

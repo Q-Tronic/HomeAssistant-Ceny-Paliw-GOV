@@ -56,7 +56,6 @@ from .const import (
     UPDATE_INTERVAL_MINUTES_OPTIONS,
 )
 from .notifications import (
-    async_send_current_notification,
     async_send_test_notification,
     mobile_app_notify_targets,
 )
@@ -595,13 +594,13 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
             await coordinator.async_request_refresh()
             if not coordinator.last_update_success:
                 raise RuntimeError("Nie udało się odświeżyć cen przed wysyłką")
-            await async_send_current_notification(
-                self.hass,
+            sent = await runtime_data.notifications.async_send_now_to_target(
                 self._selected_target,
-                coordinator.data,
-                self._ensure_working_options(),
+                options_override=self._ensure_working_options(),
                 fuels_override=normalize_fuels(device.get(DEVICE_FUELS)),
             )
+            if not sent:
+                raise RuntimeError("Nie udało się wysłać powiadomienia")
         except Exception:  # noqa: BLE001
             _LOGGER.exception(
                 "Nie udało się wysłać bieżącego powiadomienia na %s",

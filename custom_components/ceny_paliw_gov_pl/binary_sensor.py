@@ -38,7 +38,6 @@ class FuelMoreExpensiveBinarySensor(
         self.fuel = fuel
         self._attr_unique_id = f"{DOMAIN}_{fuel}_tomorrow_more_expensive"
         self._attr_name = f"{FUEL_NAMES[fuel]} jutro drożej"
-        self._attr_icon = "mdi:cash-plus"
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -65,6 +64,18 @@ class FuelMoreExpensiveBinarySensor(
         """Return true only when tomorrow is more expensive."""
         difference = self._difference()
         return bool(difference is not None and difference > 0)
+
+    @property
+    def icon(self) -> str:
+        """Return an icon matching the current price trend."""
+        difference = self._difference()
+        if difference is None:
+            return "mdi:cash-question"
+        if difference > 0:
+            return "mdi:cash-plus"
+        if difference < 0:
+            return "mdi:cash-minus"
+        return "mdi:cash-check"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

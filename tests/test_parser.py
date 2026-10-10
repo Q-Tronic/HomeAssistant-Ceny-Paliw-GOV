@@ -83,6 +83,21 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(periods[0].prices["pb98"], Decimal("7.85"))
         self.assertEqual(periods[0].prices["on"], Decimal("8.06"))
 
+
+    def test_recent_unknown_validity_is_reported_by_diagnostics(self) -> None:
+        html = """
+        <html><body>
+        <div>10.10.2026</div>
+        <a href="/web/energia/nowy-format">Maksymalna cena detaliczna paliw według nowego formatu</a>
+        <p>Benzyna 95 - 7,01 zł/l, benzyna 98 - 7,90 zł/l, olej napędowy - 8,10 zł/l.</p>
+        </body></html>
+        """
+        diagnostics = api._parse_news_page_diagnostics(html)
+        self.assertEqual(len(diagnostics.periods), 0)
+        self.assertEqual(len(diagnostics.rejected), 1)
+        self.assertEqual(diagnostics.rejected[0].published_on, date(2026, 10, 10))
+        self.assertIn("nowego formatu", diagnostics.rejected[0].title)
+
     def test_cross_month_period_title(self) -> None:
         html = """
         <html><body>
