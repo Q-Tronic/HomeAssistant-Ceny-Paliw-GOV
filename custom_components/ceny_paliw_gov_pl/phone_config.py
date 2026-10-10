@@ -16,13 +16,17 @@ from .const import (
     CONF_NOTIFICATION_TIME,
     DEFAULT_NOTIFICATION_FUELS,
     DEFAULT_NOTIFICATION_TIME,
+    DEFAULT_PHONE_NOTIFICATION_MODE,
     DEVICE_ENABLED,
     DEVICE_FUELS,
     DEVICE_NAME,
+    DEVICE_NOTIFICATION_MODE,
     DEVICE_NOTIFICATION_TIME,
     DEVICE_SERVICE,
     FUEL_SELECTION_OPTIONS,
     FUELS,
+    PHONE_NOTIFICATION_MODE_NAMES,
+    PHONE_NOTIFICATION_MODES,
 )
 
 
@@ -86,6 +90,28 @@ def fuels_for_selection_option(option: str) -> list[str]:
 
 
 
+
+
+def normalize_notification_mode(value: Any) -> str:
+    """Return a supported per-phone notification delivery mode."""
+    mode = str(value or DEFAULT_PHONE_NOTIFICATION_MODE).strip()
+    if mode not in PHONE_NOTIFICATION_MODES:
+        return DEFAULT_PHONE_NOTIFICATION_MODE
+    return mode
+
+
+def notification_mode_option(mode: Any) -> str:
+    """Return the dashboard label for a stored notification mode."""
+    return PHONE_NOTIFICATION_MODE_NAMES[normalize_notification_mode(mode)]
+
+
+def notification_mode_for_option(option: str) -> str:
+    """Return the stored notification mode represented by a dashboard label."""
+    for mode, label in PHONE_NOTIFICATION_MODE_NAMES.items():
+        if label == option:
+            return mode
+    return DEFAULT_PHONE_NOTIFICATION_MODE
+
 def normalize_target_selection(value: Any) -> list[str]:
     """Normalize a select selector value to a stable list of notification targets."""
     if value is None:
@@ -124,6 +150,9 @@ def normalize_device(
         DEVICE_ENABLED: bool(device.get(DEVICE_ENABLED, True)),
         DEVICE_NOTIFICATION_TIME: normalize_time_string(
             device.get(DEVICE_NOTIFICATION_TIME), fallback_time
+        ),
+        DEVICE_NOTIFICATION_MODE: normalize_notification_mode(
+            device.get(DEVICE_NOTIFICATION_MODE)
         ),
         DEVICE_FUELS: normalize_fuels(
             device.get(DEVICE_FUELS),
@@ -182,6 +211,7 @@ def phone_entity_unique_ids(target: str) -> set[str]:
     return {
         f"ceny_paliw_gov_pl_phone_{key}_enabled",
         f"ceny_paliw_gov_pl_phone_{key}_time",
+        f"ceny_paliw_gov_pl_phone_{key}_mode",
         f"ceny_paliw_gov_pl_phone_{key}_fuels",
         f"ceny_paliw_gov_pl_phone_{key}_send_now",
         f"ceny_paliw_gov_pl_phone_{key}_last_notification_status",

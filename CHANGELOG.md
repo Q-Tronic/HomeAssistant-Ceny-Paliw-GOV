@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.6.0
+
+- dodano osobny tryb wysyłki powiadomień dla każdego telefonu
+- dodano tryby `O ustalonej godzinie`, `Po publikacji` oraz `Po publikacji tylko gdy cena się zmieni`
+- istniejące i nowe telefony domyślnie używają trybu `O ustalonej godzinie`
+- tryby publikacyjne ignorują godzinę i reagują po wykryciu nowej publikacji GOV.PL
+- tryb publikacyjny ze zmianą używa wybranych paliw oraz wspólnego minimalnego progu zmiany ceny
+- publikacja weekendowa jest w trybach publikacyjnych wysyłana tylko raz dla całego zakresu obowiązywania
+- rozbudowano trwałą ochronę przed duplikatami o identyfikator publikacji źródłowej
+- dodano encję `select` trybu wysyłki dla każdego telefonu
+- zaktualizowano konfigurację, diagnostykę, przykłady dashboardu i dokumentację
+- dodano testy regresyjne migracji i trybów powiadomień
+
 ## 1.5.4
 
 - usunięto pustą linię z domyślnego powiadomienia z cenami

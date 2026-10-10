@@ -35,6 +35,7 @@ from .const import (
     DEVICE_ENABLED,
     DEVICE_FUELS,
     DEVICE_NAME,
+    DEVICE_NOTIFICATION_MODE,
     DEVICE_NOTIFICATION_TIME,
     DEVICE_SERVICE,
     DOMAIN,
@@ -50,6 +51,9 @@ from .const import (
     PHONE_STATUS_NONE,
     PHONE_STATUS_SENT,
     PHONE_STATUS_WAITING,
+    PHONE_NOTIFICATION_MODE_PUBLICATION,
+    PHONE_NOTIFICATION_MODE_PUBLICATION_CHANGE,
+    PHONE_NOTIFICATION_MODE_SCHEDULED,
     STATUS_NO_CHANGE,
     SIGNAL_NOTIFICATION_STATE_UPDATED,
     STATUS_NOT_PUBLISHED,
@@ -60,6 +64,7 @@ from .phone_config import (
     configured_devices,
     default_device_name,
     normalize_fuels,
+    normalize_notification_mode,
     time_from_string,
 )
 
@@ -250,10 +255,11 @@ def has_relevant_change(
     options: Mapping[str, Any] | None,
     *,
     fuels_override: list[str] | tuple[str, ...] | None = None,
+    force: bool = False,
 ) -> bool:
     """Return whether an automatic notification passes change filters."""
     options = options or {}
-    if not bool(
+    if not force and not bool(
         options.get(
             CONF_NOTIFICATION_ONLY_ON_CHANGE,
             DEFAULT_NOTIFICATION_ONLY_ON_CHANGE,
@@ -420,22 +426,37 @@ class FuelPriceNotificationManager:
             return None
 
     def phone_waiting(self, target: str) -> bool:
-        """Return whether a phone is waiting for tomorrow prices to be published."""
-        return target in self._waiting_services()
+        """Return whether a phone is waiting for a publication or scheduled delivery."""
+        if target in self._waiting_services():
+            return True
+        device = self._device_map().get(target)
+        if device is None:
+            return False
+        mode = normalize_notification_mode(device.get(DEVICE_NOTIFICATION_MODE))
+        return (
+            mode in {
+                PHONE_NOTIFICATION_MODE_PUBLICATION,
+                PHONE_NOTIFICATION_MODE_PUBLICATION_CHANGE,
+            }
+            and self.phone_status(target) == PHONE_STATUS_WAITING
+        )
 
-    def _publication_key(self) -> str | None:
-        """Build a stable identifier for the currently resolved tomorrow publication."""
+    def _daily_publication_key(self) -> str | None:
+        """Build an identifier for today's resolved tomorrow-price delivery."""
         period = self.coordinator.data.tomorrow
         if period is None:
             return None
-        prices = "|".join(
-            f"{fuel}:{period.prices.get(fuel)}"
-            for fuel in FUELS
-        )
+        return "|".join((self.coordinator.data.tomorrow_date.isoformat(), self._source_publication_key() or ""))
+
+    def _source_publication_key(self) -> str | None:
+        """Build an identifier that stays stable across a multi-day publication."""
+        period = self.coordinator.data.tomorrow
+        if period is None:
+            return None
+        prices = "|".join(f"{fuel}:{period.prices.get(fuel)}" for fuel in FUELS)
         published = period.published_on.isoformat() if period.published_on else ""
         return "|".join(
             (
-                self.coordinator.data.tomorrow_date.isoformat(),
                 period.valid_from.isoformat(),
                 period.valid_to.isoformat(),
                 published,
@@ -445,8 +466,15 @@ class FuelPriceNotificationManager:
         )
 
     def _delivered_publications(self) -> dict[str, str]:
-        """Return persisted publication identifiers delivered to each phone."""
+        """Return persisted daily publication identifiers delivered to phones."""
         raw = self._state.get("delivered_publications", {})
+        if not isinstance(raw, Mapping):
+            return {}
+        return {str(target): str(value) for target, value in raw.items() if value}
+
+    def _delivered_source_publications(self) -> dict[str, str]:
+        """Return persisted source-publication identifiers delivered to phones."""
+        raw = self._state.get("delivered_source_publications", {})
         if not isinstance(raw, Mapping):
             return {}
         return {str(target): str(value) for target, value in raw.items() if value}
@@ -481,9 +509,7 @@ class FuelPriceNotificationManager:
         for device in self.devices:
             target = str(device.get(DEVICE_SERVICE, ""))
             if target:
-                async_dispatcher_send(
-                    self.hass, SIGNAL_NOTIFICATION_STATE_UPDATED, target
-                )
+                async_dispatcher_send(self.hass, SIGNAL_NOTIFICATION_STATE_UPDATED, target)
 
     async def async_stop(self) -> None:
         """Stop notification listeners."""
@@ -509,9 +535,12 @@ class FuelPriceNotificationManager:
         await self._async_evaluate_current_day()
 
     async def async_reschedule(self) -> None:
-        """Create one daily time listener for each enabled phone."""
+        """Create daily time listeners only for phones using scheduled mode."""
         self._cancel_time_listeners()
         for device in self.enabled_devices:
+            mode = normalize_notification_mode(device.get(DEVICE_NOTIFICATION_MODE))
+            if mode != PHONE_NOTIFICATION_MODE_SCHEDULED:
+                continue
             target = str(device[DEVICE_SERVICE])
             notification_time = time_from_string(device.get(DEVICE_NOTIFICATION_TIME))
             self._unsub_times[target] = async_track_time_change(
@@ -593,16 +622,32 @@ class FuelPriceNotificationManager:
             if device.get(DEVICE_SERVICE)
         }
 
-    def _is_notified(self, target: str) -> bool:
-        publication_key = self._publication_key()
-        if publication_key is not None:
-            delivered = self._delivered_publications()
-            if target in delivered:
-                return delivered[target] == publication_key
+    def _is_delivered(self, target: str, device: Mapping[str, Any]) -> bool:
+        """Return whether the current automatic delivery is already handled."""
+        mode = normalize_notification_mode(device.get(DEVICE_NOTIFICATION_MODE))
+        daily_key = self._daily_publication_key()
+        source_key = self._source_publication_key()
+        delivered_daily = self._delivered_publications()
+
+        if mode == PHONE_NOTIFICATION_MODE_SCHEDULED:
+            if daily_key is not None and target in delivered_daily:
+                return delivered_daily[target] == daily_key
+            return target in self._notified_services()
+
+        if source_key is None:
+            return False
+        delivered_source = self._delivered_source_publications()
+        if target in delivered_source:
+            return delivered_source[target] == source_key
+
+        legacy_daily = delivered_daily.get(target)
+        if legacy_daily:
+            _prefix, separator, legacy_source = legacy_daily.partition("|")
+            return bool(separator and legacy_source == source_key)
         return target in self._notified_services()
 
     def _normalize_waiting_targets(self) -> None:
-        """Drop waits for disabled phones, future times or old target dates."""
+        """Drop scheduled waits for disabled phones, other modes or old dates."""
         if self._state.get("waiting_for_date") != self._target_date():
             self._state.pop("waiting_for_date", None)
             self._state.pop("waiting_services", None)
@@ -616,9 +661,11 @@ class FuelPriceNotificationManager:
             device = enabled.get(target)
             if device is None:
                 continue
+            if normalize_notification_mode(device.get(DEVICE_NOTIFICATION_MODE)) != PHONE_NOTIFICATION_MODE_SCHEDULED:
+                continue
             scheduled = time_from_string(device.get(DEVICE_NOTIFICATION_TIME))
             scheduled_seconds = scheduled.hour * 3600 + scheduled.minute * 60 + scheduled.second
-            if now_seconds >= scheduled_seconds and not self._is_notified(target):
+            if now_seconds >= scheduled_seconds and not self._is_delivered(target, device):
                 waiting.add(target)
 
         if waiting:
@@ -654,20 +701,29 @@ class FuelPriceNotificationManager:
             self._state.pop("waiting_services", None)
         await self._async_save_state()
 
-    async def _async_mark_notified(self, targets: set[str]) -> None:
+    async def _async_mark_delivered(self, targets: set[str]) -> None:
+        """Persist daily and source-publication delivery keys for targets."""
         if not targets:
             return
+
+        daily_key = self._daily_publication_key()
+        if daily_key is not None:
+            delivered_daily = self._delivered_publications()
+            for target in targets:
+                delivered_daily[target] = daily_key
+            self._state["delivered_publications"] = delivered_daily
+
+        source_key = self._source_publication_key()
+        if source_key is not None:
+            delivered_source = self._delivered_source_publications()
+            for target in targets:
+                delivered_source[target] = source_key
+            self._state["delivered_source_publications"] = delivered_source
+
         notified = self._notified_services()
         notified.update(targets)
         self._state["notified_for"] = self._target_date()
         self._state["notified_services"] = sorted(notified)
-
-        publication_key = self._publication_key()
-        if publication_key is not None:
-            delivered = self._delivered_publications()
-            for target in targets:
-                delivered[target] = publication_key
-            self._state["delivered_publications"] = delivered
 
         waiting = self._waiting_services()
         waiting.difference_update(targets)
@@ -688,47 +744,83 @@ class FuelPriceNotificationManager:
         )
 
     async def _async_handle_coordinator_update(self) -> None:
-        if self.coordinator.data.tomorrow is None:
-            return
         await self._async_evaluate_current_day()
 
     async def _async_scheduled_target(self, target: str, _now: datetime) -> None:
         """Handle the configured daily time for one phone."""
         device = self._enabled_device_map().get(target)
-        if device is None or self._is_notified(target):
+        if device is None:
+            return
+        if normalize_notification_mode(device.get(DEVICE_NOTIFICATION_MODE)) != PHONE_NOTIFICATION_MODE_SCHEDULED:
+            return
+        if self._is_delivered(target, device):
             return
 
         await self.coordinator.async_request_refresh()
         if not self.coordinator.last_update_success:
             return
-        if self._is_notified(target):
+        device = self._enabled_device_map().get(target)
+        if device is None or self._is_delivered(target, device):
             return
 
         if self.coordinator.data.tomorrow is not None:
-            await self._async_send_devices([device], mark_notified=True, apply_filters=True)
+            await self._async_send_devices(
+                [device],
+                mark_delivered=True,
+                automatic=True,
+            )
             return
         await self._async_add_waiting(target)
 
     async def _async_evaluate_current_day(self) -> None:
-        """Catch up phones whose configured time has already passed."""
+        """Evaluate publication modes and catch up scheduled phones."""
+        publication_devices: list[dict[str, Any]] = []
+        scheduled_due: list[dict[str, Any]] = []
         now = dt_util.now()
         now_seconds = now.hour * 3600 + now.minute * 60 + now.second
-        due: list[dict[str, Any]] = []
+
         for device in self.enabled_devices:
             target = str(device[DEVICE_SERVICE])
-            if self._is_notified(target):
+            mode = normalize_notification_mode(device.get(DEVICE_NOTIFICATION_MODE))
+
+            if mode in {
+                PHONE_NOTIFICATION_MODE_PUBLICATION,
+                PHONE_NOTIFICATION_MODE_PUBLICATION_CHANGE,
+            }:
+                if self.coordinator.data.tomorrow is None:
+                    if self.phone_status(target) != PHONE_STATUS_WAITING:
+                        await self._async_record_phone_status(target, PHONE_STATUS_WAITING)
+                    continue
+                if not self._is_delivered(target, device):
+                    publication_devices.append(device)
+                continue
+
+            if mode != PHONE_NOTIFICATION_MODE_SCHEDULED:
+                continue
+            if self._is_delivered(target, device):
                 continue
             scheduled = time_from_string(device.get(DEVICE_NOTIFICATION_TIME))
             scheduled_seconds = scheduled.hour * 3600 + scheduled.minute * 60 + scheduled.second
             if now_seconds >= scheduled_seconds:
-                due.append(device)
+                scheduled_due.append(device)
 
-        if not due:
+        if publication_devices and self.coordinator.data.tomorrow is not None:
+            await self._async_send_devices(
+                publication_devices,
+                mark_delivered=True,
+                automatic=True,
+            )
+
+        if not scheduled_due:
             return
         if self.coordinator.data.tomorrow is not None:
-            await self._async_send_devices(due, mark_notified=True, apply_filters=True)
+            await self._async_send_devices(
+                scheduled_due,
+                mark_delivered=True,
+                automatic=True,
+            )
             return
-        for device in due:
+        for device in scheduled_due:
             await self._async_add_waiting(str(device[DEVICE_SERVICE]))
 
     async def async_send_now_to_all(self) -> int:
@@ -736,8 +828,8 @@ class FuelPriceNotificationManager:
         self._sync_target_repairs()
         return await self._async_send_devices(
             self.enabled_devices,
-            mark_notified=self.coordinator.data.tomorrow is not None,
-            apply_filters=False,
+            mark_delivered=self.coordinator.data.tomorrow is not None,
+            automatic=False,
         )
 
     async def async_send_now_to_target(
@@ -746,6 +838,7 @@ class FuelPriceNotificationManager:
         *,
         options_override: Mapping[str, Any] | None = None,
         fuels_override: list[str] | tuple[str, ...] | None = None,
+        mode_override: str | None = None,
     ) -> bool:
         """Send the current daily-format notification to one configured phone."""
         device = self._device_map().get(target)
@@ -754,10 +847,14 @@ class FuelPriceNotificationManager:
         selected_device = dict(device)
         if fuels_override is not None:
             selected_device[DEVICE_FUELS] = normalize_fuels(fuels_override)
+        if mode_override is not None:
+            selected_device[DEVICE_NOTIFICATION_MODE] = normalize_notification_mode(
+                mode_override
+            )
         count = await self._async_send_devices(
             [selected_device],
-            mark_notified=self.coordinator.data.tomorrow is not None,
-            apply_filters=False,
+            mark_delivered=self.coordinator.data.tomorrow is not None,
+            automatic=False,
             options_override=options_override,
         )
         return bool(count)
@@ -766,8 +863,8 @@ class FuelPriceNotificationManager:
         self,
         devices: list[dict[str, Any]],
         *,
-        mark_notified: bool,
-        apply_filters: bool,
+        mark_delivered: bool,
+        automatic: bool,
         options_override: Mapping[str, Any] | None = None,
     ) -> int:
         """Send individualized notification content to a list of phones."""
@@ -790,10 +887,16 @@ class FuelPriceNotificationManager:
                     if options_override is not None
                     else self.entry.options
                 )
-                if apply_filters and not has_relevant_change(
+                mode = normalize_notification_mode(device.get(DEVICE_NOTIFICATION_MODE))
+                force_change = (
+                    automatic
+                    and mode == PHONE_NOTIFICATION_MODE_PUBLICATION_CHANGE
+                )
+                if automatic and not has_relevant_change(
                     self.coordinator.data,
                     notification_options,
                     fuels_override=fuels,
+                    force=force_change,
                 ):
                     filtered.add(target)
                     continue
@@ -824,11 +927,8 @@ class FuelPriceNotificationManager:
 
             handled = successful | filtered
             failed = attempted_targets - successful
-            if mark_notified:
-                if handled:
-                    await self._async_mark_notified(handled)
-                for target in sorted(failed):
-                    await self._async_add_waiting(target, PHONE_STATUS_ERROR)
+            if mark_delivered and handled:
+                await self._async_mark_delivered(handled)
 
             sent_at = dt_util.now()
             for target in sorted(successful):
@@ -837,9 +937,8 @@ class FuelPriceNotificationManager:
                 )
             for target in sorted(filtered):
                 await self._async_record_phone_status(target, PHONE_STATUS_FILTERED)
-            if not mark_notified:
-                for target in sorted(failed):
-                    await self._async_record_phone_status(target, PHONE_STATUS_ERROR)
+            for target in sorted(failed):
+                await self._async_record_phone_status(target, PHONE_STATUS_ERROR)
 
             self.last_send_at = sent_at
             if filtered and not attempted_targets:

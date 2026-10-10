@@ -27,6 +27,7 @@ from .const import (
     CONF_DEVICE_ENABLED,
     CONF_DEVICE_NAME,
     CONF_DEVICE_NOTIFICATION_FUELS,
+    CONF_DEVICE_NOTIFICATION_MODE,
     CONF_DEVICE_NOTIFICATION_TIME,
     CONF_NOTIFICATION_CUSTOM_MESSAGE,
     CONF_NOTIFICATION_CUSTOM_TITLE,
@@ -42,16 +43,19 @@ from .const import (
     DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ,
     DEFAULT_NOTIFICATION_ONLY_ON_CHANGE,
     DEFAULT_NOTIFICATION_TIME,
+    DEFAULT_PHONE_NOTIFICATION_MODE,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
     DEVICE_ENABLED,
     DEVICE_FUELS,
     DEVICE_NAME,
+    DEVICE_NOTIFICATION_MODE,
     DEVICE_NOTIFICATION_TIME,
     DEVICE_SERVICE,
     DOMAIN,
     FUEL_NAMES,
     FUELS,
     NAME,
+    PHONE_NOTIFICATION_MODE_NAMES,
     UNIT_GROSZ,
     UPDATE_INTERVAL_MINUTES_OPTIONS,
 )
@@ -62,6 +66,7 @@ from .notifications import (
 from .phone_config import (
     default_device_name,
     normalize_fuels,
+    normalize_notification_mode,
     normalize_target_selection,
     normalize_time_string,
     normalized_options,
@@ -219,6 +224,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
         name: str,
         enabled: bool,
         notification_time: Any,
+        notification_mode: Any,
         fuels: Any,
     ) -> None:
         if self._selected_target is None:
@@ -229,6 +235,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
             DEVICE_NAME: name,
             DEVICE_ENABLED: enabled,
             DEVICE_NOTIFICATION_TIME: normalize_time_string(notification_time),
+            DEVICE_NOTIFICATION_MODE: normalize_notification_mode(notification_mode),
             DEVICE_FUELS: normalize_fuels(fuels),
         }
         self._set_devices(list(devices.values()))
@@ -389,6 +396,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                         DEVICE_NAME: default_device_name(target),
                         DEVICE_ENABLED: True,
                         DEVICE_NOTIFICATION_TIME: DEFAULT_NOTIFICATION_TIME,
+                        DEVICE_NOTIFICATION_MODE: DEFAULT_PHONE_NOTIFICATION_MODE,
                         DEVICE_FUELS: list(DEFAULT_NOTIFICATION_FUELS),
                     }
                 updated_devices.append(dict(current))
@@ -464,6 +472,9 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
         name = str(device.get(DEVICE_NAME) or default_device_name(self._selected_target))
         enabled = bool(device.get(DEVICE_ENABLED, True))
         notification_time = normalize_time_string(device.get(DEVICE_NOTIFICATION_TIME))
+        notification_mode = PHONE_NOTIFICATION_MODE_NAMES[
+            normalize_notification_mode(device.get(DEVICE_NOTIFICATION_MODE))
+        ]
         fuels = ", ".join(
             FUEL_NAMES[fuel] for fuel in normalize_fuels(device.get(DEVICE_FUELS))
         )
@@ -481,6 +492,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                 "target": self._selected_target,
                 "enabled": "tak" if enabled else "nie",
                 "time": notification_time[:5],
+                "mode": notification_mode,
                 "fuels": fuels,
                 "status": self._phone_status or "-",
             },
@@ -500,6 +512,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
         )
         default_enabled = bool(device.get(DEVICE_ENABLED, True))
         default_time = normalize_time_string(device.get(DEVICE_NOTIFICATION_TIME))
+        default_mode = normalize_notification_mode(device.get(DEVICE_NOTIFICATION_MODE))
         default_fuels = normalize_fuels(device.get(DEVICE_FUELS))
 
         if user_input is not None:
@@ -511,11 +524,16 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                 CONF_DEVICE_NOTIFICATION_TIME,
                 default_time,
             )
+            notification_mode = user_input.get(
+                CONF_DEVICE_NOTIFICATION_MODE,
+                default_mode,
+            )
             fuels = user_input.get(CONF_DEVICE_NOTIFICATION_FUELS, default_fuels)
             self._update_selected_device(
                 name=display_name,
                 enabled=enabled,
                 notification_time=notification_time,
+                notification_mode=notification_mode,
                 fuels=fuels,
             )
             self._phone_status = "Zapisano"
@@ -540,6 +558,18 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                         CONF_DEVICE_NOTIFICATION_TIME,
                         description={"suggested_value": default_time},
                     ): TimeSelector(),
+                    probatio.Optional(
+                        CONF_DEVICE_NOTIFICATION_MODE,
+                        description={"suggested_value": default_mode},
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                {"value": mode, "label": label}
+                                for mode, label in PHONE_NOTIFICATION_MODE_NAMES.items()
+                            ],
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
                     probatio.Optional(
                         CONF_DEVICE_NOTIFICATION_FUELS,
                         description={"suggested_value": default_fuels},
@@ -605,6 +635,9 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                 self._selected_target,
                 options_override=self._ensure_working_options(),
                 fuels_override=normalize_fuels(device.get(DEVICE_FUELS)),
+                mode_override=normalize_notification_mode(
+                    device.get(DEVICE_NOTIFICATION_MODE)
+                ),
             )
             if not sent:
                 raise RuntimeError("Nie udało się wysłać powiadomienia")

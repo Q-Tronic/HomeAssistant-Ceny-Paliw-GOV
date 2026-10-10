@@ -26,7 +26,7 @@
     "step": {
       "init": {
         "title": "Konfiguracja Maksymalne Ceny Paliw GOV.PL",
-        "description": "Wybierz sekcję konfiguracji. Ustawienia telefonów administrator zapisuje tutaj, a użytkownicy mogą później zmieniać w dashboardzie włączanie powiadomień, godzinę i zakres paliw.",
+        "description": "Wybierz sekcję konfiguracji. Ustawienia telefonów administrator zapisuje tutaj, a użytkownicy mogą później zmieniać w dashboardzie włączanie powiadomień, tryb wysyłki, godzinę i zakres paliw.",
         "menu_options": {
           "phones": "Telefony",
           "notification_content": "Powiadomienia: treść",
@@ -35,7 +35,7 @@
           "save": "Zapisz i zakończ"
         },
         "menu_option_descriptions": {
-          "phones": "Dodawaj, usuwaj i konfiguruj telefony. Każdy telefon otrzymuje własne encje switch, time i select do dashboardu.",
+          "phones": "Dodawaj, usuwaj i konfiguruj telefony. Każdy telefon otrzymuje własny przełącznik, wybór trybu wysyłki, godzinę i wybór paliw do dashboardu.",
           "notification_content": "Opcjonalnie ustaw własny tytuł lub treść wiadomości.",
           "notification_filters": "Ogranicz automatyczne wiadomości do zmian ceny i ustaw minimalną różnicę.",
           "diagnostics": "Sprawdź źródło, historię, telefony i wykonaj ręczne akcje.",
@@ -56,19 +56,19 @@
       },
       "notification_filters": {
         "title": "Filtry zmian ceny",
-        "description": "Możesz ograniczyć automatyczne wiadomości do dni, w których zmieniła się cena jednego z paliw wybranych dla danego telefonu.",
+        "description": "Globalny filtr zmian może dodatkowo ograniczyć wiadomości w trybie godzinowym i zwykłym trybie po publikacji. Tryb \"Po publikacji tylko gdy cena się zmieni\" zawsze wymaga zmiany ceny i używa tego samego minimalnego progu.",
         "data": {
           "notification_only_on_change": "Wysyłaj tylko, gdy cena się zmieni",
           "notification_min_change_grosz": "Minimalna zmiana ceny"
         },
         "data_description": {
-          "notification_only_on_change": "Jeżeli żadne paliwo wybrane dla telefonu nie spełni warunku, wiadomość dla tego telefonu zostanie pominięta.",
-          "notification_min_change_grosz": "Wartość 0 oznacza dowolną zmianę większą niż 0gr."
+          "notification_only_on_change": "Dotyczy trybu godzinowego i zwykłego trybu po publikacji. Tryb publikacyjny ze zmianą zawsze filtruje po zmianie ceny.",
+          "notification_min_change_grosz": "Wartość 0 oznacza dowolną zmianę większą niż 0gr. Ten sam próg jest używany przez tryb publikacyjny ze zmianą."
         }
       },
       "phones": {
         "title": "Telefony",
-        "description": "Skonfigurowane telefony: {count}. Każdy telefon ma własną godzinę, zakres paliw i przełącznik powiadomień.",
+        "description": "Skonfigurowane telefony: {count}. Każdy telefon ma własny tryb wysyłki, godzinę, zakres paliw i przełącznik powiadomień.",
         "menu_options": {
           "phone_list": "Dodaj lub usuń telefony",
           "choose_phone": "Konfiguruj wybrany telefon",
@@ -82,7 +82,7 @@
       },
       "phone_list": {
         "title": "Lista telefonów",
-        "description": "Wybierz telefony zarejestrowane przez aplikację Home Assistant Companion. Po zapisaniu każdy telefon otrzyma własne encje do dashboardu.",
+        "description": "Wybierz telefony zarejestrowane przez aplikację Home Assistant Companion. Po zapisaniu każdy telefon otrzyma własne encje do dashboardu, w tym wybór trybu wysyłki.",
         "data": {
           "notification_services": "Telefony do powiadomień"
         },
@@ -99,7 +99,7 @@
       },
       "phone_menu": {
         "title": "Telefon",
-        "description": "Telefon: **{device}**. Cel Home Assistant: `{target}`. Powiadomienia: {enabled}. Godzina: {time}. Paliwa: {fuels}. Ostatnia akcja: {status}",
+        "description": "Telefon: **{device}**. Cel Home Assistant: `{target}`. Powiadomienia: {enabled}. Tryb: {mode}. Godzina: {time}. Paliwa: {fuels}. Ostatnia akcja: {status}",
         "menu_options": {
           "phone_settings": "Ustawienia telefonu",
           "phone_test": "Wyślij test",
@@ -108,7 +108,7 @@
           "phones": "Wróć do menu telefonów"
         },
         "menu_option_descriptions": {
-          "phone_settings": "Zmień nazwę, włączanie powiadomień, godzinę i paliwa dla tego telefonu.",
+          "phone_settings": "Zmień nazwę, włączanie powiadomień, tryb wysyłki, godzinę i paliwa dla tego telefonu.",
           "phone_test": "Natychmiast wyślij krótkie powiadomienie testowe tylko na ten telefon.",
           "phone_send_now": "Natychmiast wyślij na ten telefon wiadomość w takim samym formacie jak codzienne powiadomienie.",
           "choose_phone": "Przejdź bezpośrednio do konfiguracji innego telefonu.",
@@ -117,18 +117,20 @@
       },
       "phone_settings": {
         "title": "Ustawienia telefonu",
-        "description": "Telefon: **{device}**. Cel Home Assistant: `{target}`. Te same ustawienia włączania, godziny i paliw są dostępne jako encje na dashboardzie.",
+        "description": "Telefon: **{device}**. Cel Home Assistant: `{target}`. Włączanie, tryb wysyłki, godzina i paliwa są również dostępne jako encje na dashboardzie.",
         "data": {
           "device_name": "Nazwa telefonu",
           "device_enabled": "Wysyłaj automatyczne powiadomienia",
           "device_notification_time": "Godzina powiadomienia",
-          "device_notification_fuels": "Paliwa w powiadomieniu"
+          "device_notification_fuels": "Paliwa w powiadomieniu",
+          "device_notification_mode": "Tryb wysyłki powiadomień"
         },
         "data_description": {
           "device_name": "Wpisz własną nazwę albo pozostaw nazwę domyślną.",
           "device_enabled": "Po wyłączeniu telefon pozostaje w integracji, ale nie otrzymuje automatycznych wiadomości.",
-          "device_notification_time": "Jeżeli o tej godzinie ceny na jutro nie są jeszcze opublikowane, integracja poczeka i wyśle wiadomość po wykryciu publikacji.",
-          "device_notification_fuels": "Wybierz PB95, PB98, ON albo dowolne dwa lub wszystkie trzy paliwa."
+          "device_notification_time": "Używana w trybie godzinowym. Jeśli o tej godzinie ceny na jutro nie są jeszcze opublikowane, integracja poczeka i wyśle wiadomość po wykryciu publikacji.",
+          "device_notification_fuels": "Wybierz PB95, PB98, ON albo dowolne dwa lub wszystkie trzy paliwa.",
+          "device_notification_mode": "Tryb godzinowy czeka do ustawionej godziny, a jeśli ceny nie są jeszcze opublikowane, wysyła po publikacji. Tryby publikacyjne wysyłają od razu po wykryciu nowej publikacji GOV.PL. Tryb publikacyjny ze zmianą wysyła tylko wtedy, gdy co najmniej jedno wybrane paliwo zmieni cenę o ustawiony próg."
         }
       },
       "diagnostics": {

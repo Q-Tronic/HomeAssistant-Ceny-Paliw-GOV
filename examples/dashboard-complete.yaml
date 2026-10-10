@@ -54,6 +54,8 @@ views:
         entities:
           - entity: switch.telefon_uzytkownika_powiadomienia
             name: Powiadomienia
+          - entity: select.telefon_uzytkownika_tryb_wysylki_powiadomien
+            name: Tryb wysyłki
           - entity: time.telefon_uzytkownika_godzina_powiadomienia
             name: Godzina
           - entity: select.telefon_uzytkownika_paliwa_w_powiadomieniu

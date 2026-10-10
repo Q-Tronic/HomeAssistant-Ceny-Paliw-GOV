@@ -2,7 +2,7 @@
 
 Niestandardowa integracja Home Assistant autorstwa **Q-Tronic**. Pobiera maksymalne detaliczne ceny paliw publikowane przez Ministerstwo Energii na gov.pl, tworzy encje dla cen dzisiejszych i jutrzejszych, prowadzi lokalną historię oraz wysyła konfigurowalne powiadomienia na telefony z aplikacją Home Assistant Companion.
 
-Aktualna wersja: **v1.5.4**.
+Aktualna wersja: **v1.6.0**.
 
 ## Najważniejsze funkcje
 
@@ -39,6 +39,41 @@ Nie opublikowano
 
 Ikony encji zmiany ceny reagują na trend. Wzrost pokazuje ikonę wzrostu, spadek ikonę spadku, brak zmiany ikonę neutralną, a brak publikacji ikonę informacyjną.
 
+
+
+## Nowości w v1.6.0
+
+### Tryb wysyłki osobno dla każdego telefonu
+
+Każdy skonfigurowany telefon otrzymuje dodatkową encję `select`, która pozwala użytkownikowi wybrać sposób automatycznej wysyłki:
+
+```text
+O ustalonej godzinie
+Po publikacji
+Po publikacji tylko gdy cena się zmieni
+```
+
+`O ustalonej godzinie` działa tak jak wcześniejsze wersje integracji. Telefon czeka do swojej godziny. Jeśli ceny na jutro nie są jeszcze opublikowane, integracja czeka i wysyła wiadomość po wykryciu publikacji.
+
+`Po publikacji` ignoruje godzinę i wysyła wiadomość od razu po wykryciu nowej publikacji GOV.PL.
+
+`Po publikacji tylko gdy cena się zmieni` również reaguje od razu na nową publikację, ale wiadomość jest wysyłana tylko wtedy, gdy co najmniej jedno paliwo wybrane dla telefonu zmieni cenę. Używany jest ten sam minimalny próg zmiany ceny, który można ustawić w filtrach powiadomień.
+
+Istniejące telefony po aktualizacji zachowują tryb `O ustalonej godzinie`. Nowo dodawane telefony również domyślnie używają tego trybu.
+
+### Publikacje weekendowe
+
+W trybach publikacyjnych jedna publikacja obejmująca kilka dni jest traktowana jako jedna publikacja. Przykładowo publikacja obejmująca sobotę, niedzielę i poniedziałek powoduje jedną automatyczną wiadomość po jej wykryciu, a nie kolejną wiadomość każdego dnia.
+
+Tryb `O ustalonej godzinie` zachowuje dotychczasowe działanie dzienne.
+
+### Ochrona przed duplikatami
+
+Integracja zapisuje osobno identyfikator dziennej wysyłki oraz identyfikator publikacji źródłowej. Dzięki temu restart Home Assistanta nie powoduje ponownego wysłania tej samej publikacji w trybach publikacyjnych.
+
+### Tryb skupienia telefonu
+
+Integracja przekazuje powiadomienie do Home Assistant Companion w chwili wynikającej z wybranego trybu. To, czy telefon pokaże je natychmiast przy aktywnym trybie skupienia, zależy od ustawień Androida lub iOS. Integracja nie wymusza powiadomień krytycznych.
 
 ## Poprawki w v1.5.4
 
@@ -171,6 +206,7 @@ Administrator najpierw dodaje telefon w konfiguracji integracji. Dla każdego te
 
 ```text
 switch.<nazwa_telefonu>_powiadomienia
+select.<nazwa_telefonu>_tryb_wysylki_powiadomien
 time.<nazwa_telefonu>_godzina_powiadomienia
 select.<nazwa_telefonu>_paliwa_w_powiadomieniu
 button.<nazwa_telefonu>_wyslij_powiadomienie_teraz
@@ -182,9 +218,11 @@ Dokładny `entity_id` zależy od nazwy telefonu i istniejących encji w danej in
 
 `switch` pozwala użytkownikowi włączyć albo wyłączyć automatyczne powiadomienia dla swojego telefonu.
 
-`time` ustawia indywidualną godzinę wysyłki.
+`select` trybu wysyłki pozwala wybrać wysyłkę godzinową, natychmiast po publikacji albo po publikacji tylko przy zmianie ceny.
 
-`select` pozwala wybrać:
+`time` ustawia indywidualną godzinę używaną przez tryb `O ustalonej godzinie`. W trybach publikacyjnych ta godzina jest ignorowana.
+
+`select` paliw pozwala wybrać:
 
 ```text
 PB95
@@ -200,23 +238,17 @@ PB95 + PB98 + ON
 
 Sensory statusu i czasu ostatniej wysyłki pozwalają użytkownikowi sprawdzić, co ostatnio zrobiła integracja.
 
-Zmiany `switch`, `time` i `select` są zapisywane bez konieczności ponownego uruchamiania Home Assistanta.
+Zmiany `switch`, `time` i obu encji `select` są zapisywane bez konieczności ponownego uruchamiania Home Assistanta.
 
-## Indywidualna godzina i oczekiwanie na publikację
+## Indywidualny tryb, godzina i oczekiwanie na publikację
 
-Każdy telefon ma własny harmonogram.
+Każdy telefon ma własny tryb wysyłki.
 
-Jeżeli o ustawionej godzinie ceny na jutro są już opublikowane, wiadomość zostanie wysłana od razu.
+W trybie `O ustalonej godzinie`, jeśli ceny na jutro są już opublikowane o wybranej godzinie, wiadomość zostanie wysłana od razu. Jeśli publikacji jeszcze nie ma, telefon otrzymuje status `Oczekuje na publikację` i wiadomość zostanie wysłana po jej wykryciu.
 
-Jeżeli ceny nie zostały jeszcze opublikowane, telefon otrzymuje status:
+W trybie `Po publikacji` wiadomość jest wysyłana po wykryciu nowej publikacji bez czekania na ustawioną godzinę.
 
-```text
-Oczekuje na publikację
-```
-
-Po wykryciu publikacji wiadomość zostanie wysłana automatycznie tylko do telefonów, których ustawiona godzina już minęła.
-
-Telefon ustawiony na późniejszą godzinę czeka do swojej własnej godziny, nawet jeżeli publikacja pojawiła się wcześniej.
+W trybie `Po publikacji tylko gdy cena się zmieni` integracja dodatkowo sprawdza wybrane dla telefonu paliwa i minimalny próg zmiany. Jeśli warunek nie jest spełniony, publikacja jest oznaczana jako obsłużona i nie jest sprawdzana ponownie przy każdym odświeżeniu.
 
 ## Reconfigure flow
 
@@ -284,6 +316,7 @@ Każdy telefon ma osobne podmenu. Administrator może:
 
 - nadać własną nazwę
 - włączyć albo wyłączyć automatyczne powiadomienia
+- ustawić tryb wysyłki
 - ustawić początkową godzinę
 - wybrać początkowy zakres paliw
 - wysłać test
@@ -293,7 +326,6 @@ Każdy telefon ma osobne podmenu. Administrator może:
 
 ```text
 Maksymalne ceny paliw na jutro, 11.10.2026
-
 PB95: dziś 6,90 zł/l, jutro 6,97 zł/l, drożej o 7gr
 PB98: dziś 7,80 zł/l, jutro 7,85 zł/l, drożej o 5gr
 ON: dziś 8,08 zł/l, jutro 8,06 zł/l, taniej o 2gr
@@ -329,9 +361,11 @@ pb95.difference_grosz
 
 ## Filtr zmian
 
-Można włączyć wysyłkę tylko wtedy, gdy co najmniej jedno paliwo wybrane dla konkretnego telefonu zmieni cenę.
+Globalny filtr zmian może ograniczać wiadomości w trybie `O ustalonej godzinie` oraz w zwykłym trybie `Po publikacji`.
 
-Można również ustawić minimalną zmianę w groszach. Przykład: `5gr` oznacza, że wiadomość zostanie wysłana tylko wtedy, gdy co najmniej jedno wybrane paliwo zmieni cenę o minimum 5gr.
+Tryb `Po publikacji tylko gdy cena się zmieni` zawsze wymaga zmiany co najmniej jednego paliwa wybranego dla danego telefonu.
+
+Można ustawić minimalną zmianę w groszach. Przykład: `5gr` oznacza, że warunek jest spełniony, gdy co najmniej jedno wybrane paliwo zmieni cenę o minimum 5gr.
 
 ## Przyciski globalne
 
@@ -383,7 +417,7 @@ examples/dashboard-colored.yaml
 examples/lovelace-card.yaml
 ```
 
-`dashboard-phone.yaml` zawiera konfigurację jednego telefonu, w tym przycisk wysyłki, status i czas ostatniego powiadomienia.
+`dashboard-phone.yaml` zawiera konfigurację jednego telefonu, w tym tryb wysyłki, godzinę, paliwa, przycisk wysyłki, status i czas ostatniego powiadomienia.
 
 `dashboard-complete.yaml` jest przykładem kompletnego widoku zawierającego ceny, historię, sterowanie telefonem i akcje.
 
@@ -408,6 +442,8 @@ title: Powiadomienia paliwowe
 entities:
   - entity: switch.telefon_uzytkownika_powiadomienia
     name: Powiadomienia
+  - entity: select.telefon_uzytkownika_tryb_wysylki_powiadomien
+    name: Tryb wysyłki
   - entity: time.telefon_uzytkownika_godzina_powiadomienia
     name: Godzina
   - entity: select.telefon_uzytkownika_paliwa_w_powiadomieniu

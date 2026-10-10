@@ -58,6 +58,31 @@ class PhoneConfigTests(unittest.TestCase):
         self.assertEqual(phone_config.normalize_target_selection(None), [])
         self.assertEqual(phone_config.normalize_target_selection(123), [])
 
+    def test_existing_phone_without_mode_defaults_to_scheduled(self) -> None:
+        device = phone_config.normalize_device(
+            {
+                "service": "notify.mobile_app_robert",
+                "name": "Robert",
+                "enabled": True,
+                "notification_time": "18:00:00",
+                "fuels": ["pb95", "on"],
+            }
+        )
+        self.assertIsNotNone(device)
+        self.assertEqual(device["notification_mode"], "scheduled")
+
+    def test_unknown_mode_falls_back_to_scheduled(self) -> None:
+        self.assertEqual(phone_config.normalize_notification_mode("nieznany"), "scheduled")
+
+    def test_notification_mode_labels_round_trip(self) -> None:
+        for mode in ("scheduled", "publication", "publication_change"):
+            label = phone_config.notification_mode_option(mode)
+            self.assertEqual(phone_config.notification_mode_for_option(label), mode)
+
+    def test_phone_unique_ids_include_mode_select(self) -> None:
+        ids = phone_config.phone_entity_unique_ids("notify.mobile_app_robert")
+        self.assertIn("ceny_paliw_gov_pl_phone_notify_mobile_app_robert_mode", ids)
+
 
 class ReloadRegressionTests(unittest.TestCase):
     def test_setup_does_not_register_update_listener_with_options_flow_reload(self) -> None:

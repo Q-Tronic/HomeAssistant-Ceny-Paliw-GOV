@@ -6,7 +6,7 @@ from datetime import timedelta
 
 DOMAIN = "ceny_paliw_gov_pl"
 NAME = "Maksymalne Ceny Paliw GOV.PL"
-VERSION = "1.5.4"
+VERSION = "1.6.0"
 AUTHOR = "Q-Tronic"
 
 NEWS_URL = "https://www.gov.pl/web/energia/wiadomosci"
@@ -68,6 +68,7 @@ CONF_DEVICE_NAME = "device_name"
 CONF_DEVICE_ENABLED = "device_enabled"
 CONF_DEVICE_NOTIFICATION_TIME = "device_notification_time"
 CONF_DEVICE_NOTIFICATION_FUELS = "device_notification_fuels"
+CONF_DEVICE_NOTIFICATION_MODE = "device_notification_mode"
 CONF_NOTIFICATION_ONLY_ON_CHANGE = "notification_only_on_change"
 CONF_NOTIFICATION_MIN_CHANGE_GROSZ = "notification_min_change_grosz"
 CONF_NOTIFICATION_CUSTOM_TITLE = "notification_custom_title"
@@ -84,6 +85,7 @@ DEVICE_NAME = "name"
 DEVICE_ENABLED = "enabled"
 DEVICE_NOTIFICATION_TIME = "notification_time"
 DEVICE_FUELS = "fuels"
+DEVICE_NOTIFICATION_MODE = "notification_mode"
 
 DEFAULT_NOTIFICATION_TIME = "18:00:00"
 DEFAULT_NOTIFICATION_FUELS = list(FUELS)
@@ -92,6 +94,21 @@ DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ = 0
 DEFAULT_NOTIFICATION_CUSTOM_TITLE = ""
 DEFAULT_NOTIFICATION_CUSTOM_MESSAGE = ""
 DEFAULT_NOTIFICATIONS_ENABLED = True
+
+PHONE_NOTIFICATION_MODE_SCHEDULED = "scheduled"
+PHONE_NOTIFICATION_MODE_PUBLICATION = "publication"
+PHONE_NOTIFICATION_MODE_PUBLICATION_CHANGE = "publication_change"
+PHONE_NOTIFICATION_MODES = (
+    PHONE_NOTIFICATION_MODE_SCHEDULED,
+    PHONE_NOTIFICATION_MODE_PUBLICATION,
+    PHONE_NOTIFICATION_MODE_PUBLICATION_CHANGE,
+)
+PHONE_NOTIFICATION_MODE_NAMES: dict[str, str] = {
+    PHONE_NOTIFICATION_MODE_SCHEDULED: "O ustalonej godzinie",
+    PHONE_NOTIFICATION_MODE_PUBLICATION: "Po publikacji",
+    PHONE_NOTIFICATION_MODE_PUBLICATION_CHANGE: "Po publikacji tylko gdy cena się zmieni",
+}
+DEFAULT_PHONE_NOTIFICATION_MODE = PHONE_NOTIFICATION_MODE_SCHEDULED
 
 # Zachowane wyłącznie dla migracji starszych ustawień.
 NOTIFICATION_MODE_SCHEDULED = "scheduled"

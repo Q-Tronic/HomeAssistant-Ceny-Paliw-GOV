@@ -26,7 +26,7 @@
     "step": {
       "init": {
         "title": "Maximum Fuel Prices GOV.PL configuration",
-        "description": "Choose a configuration section. The administrator adds phones here, while users can later control notification enablement, time and fuel selection from dashboard entities.",
+        "description": "Choose a configuration section. The administrator adds phones here, while users can later control notification enablement, delivery mode, time and fuel selection from dashboard entities.",
         "menu_options": {
           "phones": "Phones",
           "notification_content": "Notifications: content",
@@ -35,7 +35,7 @@
           "save": "Save and finish"
         },
         "menu_option_descriptions": {
-          "phones": "Add, remove and configure phones. Each phone receives its own switch, time and select dashboard entities.",
+          "phones": "Add, remove and configure phones. Each phone receives its own switch, delivery-mode select, time entity and fuel select for the dashboard.",
           "notification_content": "Optionally customize the notification title or message.",
           "notification_filters": "Send only on price changes and set a minimum difference.",
           "diagnostics": "Check source status, history and notification targets, and run manual actions.",
@@ -56,19 +56,19 @@
       },
       "notification_filters": {
         "title": "Price change filters",
-        "description": "You can limit automatic messages to days when one of the fuels selected for that phone changes price.",
+        "description": "The global change filter can additionally limit scheduled and publication messages. The \"after publication only when price changes\" phone mode always requires a price change and uses the same minimum threshold.",
         "data": {
           "notification_only_on_change": "Send only when the price changes",
           "notification_min_change_grosz": "Minimum price change"
         },
         "data_description": {
-          "notification_only_on_change": "If none of the fuels selected for the phone match the condition, that phone's message is skipped.",
-          "notification_min_change_grosz": "A value of 0 means any change greater than 0gr."
+          "notification_only_on_change": "Applies to scheduled and normal publication modes. The change-only publication mode always filters by price change.",
+          "notification_min_change_grosz": "A value of 0 means any change greater than 0gr. The same threshold is used by the change-only publication mode."
         }
       },
       "phones": {
         "title": "Phones",
-        "description": "Configured phones: {count}. Each phone has its own notification time, fuel selection and enable switch.",
+        "description": "Configured phones: {count}. Each phone has its own delivery mode, notification time, fuel selection and enable switch.",
         "menu_options": {
           "phone_list": "Add or remove phones",
           "choose_phone": "Configure a selected phone",
@@ -82,7 +82,7 @@
       },
       "phone_list": {
         "title": "Phone list",
-        "description": "Select phones registered by the Home Assistant Companion app. After saving, each phone receives its own dashboard entities.",
+        "description": "Select phones registered by the Home Assistant Companion app. After saving, each phone receives its own dashboard entities, including delivery mode.",
         "data": {
           "notification_services": "Phones to notify"
         },
@@ -99,7 +99,7 @@
       },
       "phone_menu": {
         "title": "Phone",
-        "description": "Phone: **{device}**. Home Assistant target: `{target}`. Notifications: {enabled}. Time: {time}. Fuels: {fuels}. Last action: {status}",
+        "description": "Phone: **{device}**. Home Assistant target: `{target}`. Notifications: {enabled}. Mode: {mode}. Time: {time}. Fuels: {fuels}. Last action: {status}",
         "menu_options": {
           "phone_settings": "Phone settings",
           "phone_test": "Send test",
@@ -108,7 +108,7 @@
           "phones": "Back to phone menu"
         },
         "menu_option_descriptions": {
-          "phone_settings": "Change the name, notification enablement, time and fuels for this phone.",
+          "phone_settings": "Change the name, notification enablement, delivery mode, time and fuels for this phone.",
           "phone_test": "Immediately send a short test notification only to this phone.",
           "phone_send_now": "Immediately send this phone a message in the same format as the daily notification.",
           "choose_phone": "Go directly to another phone configuration.",
@@ -117,18 +117,20 @@
       },
       "phone_settings": {
         "title": "Phone settings",
-        "description": "Phone: **{device}**. Home Assistant target: `{target}`. The same enable, time and fuel settings are also available as dashboard entities.",
+        "description": "Phone: **{device}**. Home Assistant target: `{target}`. Enablement, delivery mode, time and fuel settings are also available as dashboard entities.",
         "data": {
           "device_name": "Phone name",
           "device_enabled": "Send automatic notifications",
           "device_notification_time": "Notification time",
-          "device_notification_fuels": "Fuels in notification"
+          "device_notification_fuels": "Fuels in notification",
+          "device_notification_mode": "Notification delivery mode"
         },
         "data_description": {
           "device_name": "Enter a custom name or keep the default name.",
           "device_enabled": "When disabled, the phone remains configured but receives no automatic messages.",
-          "device_notification_time": "If tomorrow's prices are not published at this time, the integration waits and sends after publication is detected.",
-          "device_notification_fuels": "Choose PB95, PB98, diesel, any pair, or all three fuels."
+          "device_notification_time": "Used by the scheduled mode. If tomorrow prices are not published at that time, the integration waits and sends after publication is detected.",
+          "device_notification_fuels": "Choose PB95, PB98, diesel, any pair, or all three fuels.",
+          "device_notification_mode": "Scheduled waits for the configured time and then for publication if needed. Publication modes send immediately when a new GOV.PL publication is detected. The change-only publication mode sends only when at least one selected fuel changes by the configured threshold."
         }
       },
       "diagnostics": {

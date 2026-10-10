@@ -36,6 +36,15 @@ class TranslationPlaceholderTests(unittest.TestCase):
                 with self.subTest(file=path.name, step=step_id):
                     self.assertIn("{device}", description)
 
+    def test_phone_menu_mode_placeholder_is_provided(self) -> None:
+        flow_source = (COMPONENT / "config_flow.py").read_text(encoding="utf-8")
+        self.assertIn('"mode": notification_mode', flow_source)
+        for path in TRANSLATION_FILES:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            description = data["options"]["step"]["phone_menu"]["description"]
+            with self.subTest(file=path.name):
+                self.assertIn("{mode}", description)
+
 
 if __name__ == "__main__":
     unittest.main()
