@@ -98,8 +98,8 @@
         }
       },
       "phone_menu": {
-        "title": "Phone: {device}",
-        "description": "Home Assistant target: `{target}`. Notifications: {enabled}. Time: {time}. Fuels: {fuels}. Last action: {status}",
+        "title": "Phone",
+        "description": "Phone: **{device}**. Home Assistant target: `{target}`. Notifications: {enabled}. Time: {time}. Fuels: {fuels}. Last action: {status}",
         "menu_options": {
           "phone_settings": "Phone settings",
           "phone_test": "Send test",
@@ -116,8 +116,8 @@
         }
       },
       "phone_settings": {
-        "title": "Phone settings: {device}",
-        "description": "Home Assistant target: `{target}`. The same enable, time and fuel settings are also available as dashboard entities.",
+        "title": "Phone settings",
+        "description": "Phone: **{device}**. Home Assistant target: `{target}`. The same enable, time and fuel settings are also available as dashboard entities.",
         "data": {
           "device_name": "Phone name",
           "device_enabled": "Send automatic notifications",

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.3
+
+- poprawiono błąd formatowania tłumaczenia po wybraniu telefonu
+- usunięto dynamiczny placeholder `{device}` z tytułów kroków Options Flow
+- nazwa telefonu jest teraz wyświetlana w opisie kroku, gdzie Home Assistant obsługuje `description_placeholders`
+- dodano test regresyjny dla placeholderów w tytułach konfiguracji
+
 ## 1.5.2
 
 - poprawiono zapisywanie konfiguracji telefonów

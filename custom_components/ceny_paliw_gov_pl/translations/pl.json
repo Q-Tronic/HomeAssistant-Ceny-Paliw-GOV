@@ -98,8 +98,8 @@
         }
       },
       "phone_menu": {
-        "title": "Telefon: {device}",
-        "description": "Cel Home Assistant: `{target}`. Powiadomienia: {enabled}. Godzina: {time}. Paliwa: {fuels}. Ostatnia akcja: {status}",
+        "title": "Telefon",
+        "description": "Telefon: **{device}**. Cel Home Assistant: `{target}`. Powiadomienia: {enabled}. Godzina: {time}. Paliwa: {fuels}. Ostatnia akcja: {status}",
         "menu_options": {
           "phone_settings": "Ustawienia telefonu",
           "phone_test": "Wyślij test",
@@ -116,8 +116,8 @@
         }
       },
       "phone_settings": {
-        "title": "Ustawienia telefonu: {device}",
-        "description": "Cel Home Assistant: `{target}`. Te same ustawienia włączania, godziny i paliw będą dostępne jako encje na dashboardzie.",
+        "title": "Ustawienia telefonu",
+        "description": "Telefon: **{device}**. Cel Home Assistant: `{target}`. Te same ustawienia włączania, godziny i paliw są dostępne jako encje na dashboardzie.",
         "data": {
           "device_name": "Nazwa telefonu",
           "device_enabled": "Wysyłaj automatyczne powiadomienia",
