@@ -638,6 +638,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                 mode_override=normalize_notification_mode(
                     device.get(DEVICE_NOTIFICATION_MODE)
                 ),
+                device_override=device,
             )
             if not sent:
                 raise RuntimeError("Nie udało się wysłać powiadomienia")
@@ -706,7 +707,10 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
             await runtime.coordinator.async_request_refresh()
             if not runtime.coordinator.last_update_success:
                 raise RuntimeError("Nie udało się odświeżyć cen przed wysyłką")
-            count = await runtime.notifications.async_send_now_to_all()
+            count = await runtime.notifications.async_send_now_to_all(
+                devices_override=list(self._existing_devices().values()),
+                options_override=self._ensure_working_options(),
+            )
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Ręczna wysyłka do wszystkich telefonów nie powiodła się")
             self._diagnostic_status = "Błąd wysyłki"

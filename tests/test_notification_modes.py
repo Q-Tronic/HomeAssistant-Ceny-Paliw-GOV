@@ -107,11 +107,11 @@ class NotificationModeTests(unittest.TestCase):
         legacy_daily_key = saturday._daily_publication_key()
         sunday = self._manager(
             date(2026, 10, 11),
-            {"delivered_publications": {"notify.mobile_app_robert": legacy_daily_key}},
+            {"delivered_publications": {"notify.mobile_app_test_phone_a": legacy_daily_key}},
         )
         self.assertTrue(
             sunday._is_delivered(
-                "notify.mobile_app_robert",
+                "notify.mobile_app_test_phone_a",
                 {"notification_mode": "publication"},
             )
         )
@@ -121,11 +121,11 @@ class NotificationModeTests(unittest.TestCase):
         saturday_key = saturday._daily_publication_key()
         sunday = self._manager(
             date(2026, 10, 11),
-            {"delivered_publications": {"notify.mobile_app_robert": saturday_key}},
+            {"delivered_publications": {"notify.mobile_app_test_phone_a": saturday_key}},
         )
         self.assertFalse(
             sunday._is_delivered(
-                "notify.mobile_app_robert",
+                "notify.mobile_app_test_phone_a",
                 {"notification_mode": "scheduled"},
             )
         )
@@ -135,12 +135,12 @@ class NotificationModeTests(unittest.TestCase):
         source_key = manager._source_publication_key()
         manager._state = {
             "delivered_source_publications": {
-                "notify.mobile_app_robert": source_key,
+                "notify.mobile_app_test_phone_a": source_key,
             }
         }
         self.assertTrue(
             manager._is_delivered(
-                "notify.mobile_app_robert",
+                "notify.mobile_app_test_phone_a",
                 {"notification_mode": "publication_change"},
             )
         )

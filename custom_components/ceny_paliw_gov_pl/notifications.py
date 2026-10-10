@@ -823,13 +823,27 @@ class FuelPriceNotificationManager:
         for device in scheduled_due:
             await self._async_add_waiting(str(device[DEVICE_SERVICE]))
 
-    async def async_send_now_to_all(self) -> int:
+    async def async_send_now_to_all(
+        self,
+        *,
+        devices_override: list[dict[str, Any]] | None = None,
+        options_override: Mapping[str, Any] | None = None,
+    ) -> int:
         """Send the current daily-format notification to all enabled phones."""
         self._sync_target_repairs()
+        source_devices = (
+            devices_override if devices_override is not None else self.enabled_devices
+        )
+        devices = [
+            dict(device)
+            for device in source_devices
+            if device.get(DEVICE_ENABLED, True) and device.get(DEVICE_SERVICE)
+        ]
         return await self._async_send_devices(
-            self.enabled_devices,
+            devices,
             mark_delivered=self.coordinator.data.tomorrow is not None,
             automatic=False,
+            options_override=options_override,
         )
 
     async def async_send_now_to_target(
@@ -839,9 +853,15 @@ class FuelPriceNotificationManager:
         options_override: Mapping[str, Any] | None = None,
         fuels_override: list[str] | tuple[str, ...] | None = None,
         mode_override: str | None = None,
+        device_override: Mapping[str, Any] | None = None,
     ) -> bool:
         """Send the current daily-format notification to one configured phone."""
-        device = self._device_map().get(target)
+        device: Mapping[str, Any] | None = self._device_map().get(target)
+        if (
+            device_override is not None
+            and str(device_override.get(DEVICE_SERVICE, "")) == target
+        ):
+            device = device_override
         if device is None:
             return False
         selected_device = dict(device)

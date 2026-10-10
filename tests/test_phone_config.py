@@ -39,19 +39,19 @@ phone_config = sys.modules["ceny_paliw_gov_pl.phone_config"]
 
 class PhoneConfigTests(unittest.TestCase):
     def test_single_target_string_is_not_split_into_characters(self) -> None:
-        target = "notify.mobile_app_robert"
+        target = "notify.mobile_app_test_phone_a"
         self.assertEqual(phone_config.normalize_target_selection(target), [target])
 
     def test_multiple_targets_are_deduplicated_and_ordered(self) -> None:
         self.assertEqual(
             phone_config.normalize_target_selection(
                 [
-                    "notify.mobile_app_robert",
-                    "notify.mobile_app_ania",
-                    "notify.mobile_app_robert",
+                    "notify.mobile_app_test_phone_a",
+                    "notify.mobile_app_test_phone_b",
+                    "notify.mobile_app_test_phone_a",
                 ]
             ),
-            ["notify.mobile_app_robert", "notify.mobile_app_ania"],
+            ["notify.mobile_app_test_phone_a", "notify.mobile_app_test_phone_b"],
         )
 
     def test_empty_and_unknown_types_are_safe(self) -> None:
@@ -61,8 +61,8 @@ class PhoneConfigTests(unittest.TestCase):
     def test_existing_phone_without_mode_defaults_to_scheduled(self) -> None:
         device = phone_config.normalize_device(
             {
-                "service": "notify.mobile_app_robert",
-                "name": "Robert",
+                "service": "notify.mobile_app_test_phone_a",
+                "name": "Telefon A",
                 "enabled": True,
                 "notification_time": "18:00:00",
                 "fuels": ["pb95", "on"],
@@ -80,8 +80,8 @@ class PhoneConfigTests(unittest.TestCase):
             self.assertEqual(phone_config.notification_mode_for_option(label), mode)
 
     def test_phone_unique_ids_include_mode_select(self) -> None:
-        ids = phone_config.phone_entity_unique_ids("notify.mobile_app_robert")
-        self.assertIn("ceny_paliw_gov_pl_phone_notify_mobile_app_robert_mode", ids)
+        ids = phone_config.phone_entity_unique_ids("notify.mobile_app_test_phone_a")
+        self.assertIn("ceny_paliw_gov_pl_phone_notify_mobile_app_test_phone_a_mode", ids)
 
 
 class ReloadRegressionTests(unittest.TestCase):

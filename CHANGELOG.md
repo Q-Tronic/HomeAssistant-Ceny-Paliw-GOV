@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.1
+
+- poprawiono ręczne wysyłanie powiadomienia do telefonu dodanego w Options Flow przed końcowym zapisem konfiguracji
+- akcja `Wyślij wszystkim teraz` w konfiguracji korzysta teraz z aktualnych, również jeszcze niezapisanych ustawień telefonów
+- usunięto z testów przykładowe nazwy i identyfikatory przypominające dane prawdziwych użytkowników
+- dodano testy regresyjne dla ręcznych akcji wykonywanych przed zapisaniem Options Flow
+- bez zmian w istniejących encjach, trybach automatycznych i zapisanych ustawieniach
+
 ## 1.6.0
 
 - dodano osobny tryb wysyłki powiadomień dla każdego telefonu
