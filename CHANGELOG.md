@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.4
+
+- usunięto pustą linię z domyślnego powiadomienia z cenami
+- usunięto pustą linię z komunikatu o braku publikacji cen na jutro
+- ujednolicono bardziej kompaktowy wygląd powiadomień na Androidzie i iOS
+- dodano test regresyjny formatu domyślnej wiadomości
+
 ## 1.5.3
 
 - poprawiono błąd formatowania tłumaczenia po wybraniu telefonu

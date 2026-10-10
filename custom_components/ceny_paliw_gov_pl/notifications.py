@@ -146,7 +146,7 @@ def build_price_notification(
 ) -> str:
     """Build the notification body with today, tomorrow and price changes."""
     date_text = data.tomorrow_date.strftime("%d.%m.%Y")
-    lines = [f"Maksymalne ceny paliw na jutro, {date_text}", ""]
+    lines = [f"Maksymalne ceny paliw na jutro, {date_text}"]
 
     for fuel in fuels or list(FUELS):
         today = _price(data.today, fuel)
@@ -164,7 +164,7 @@ def build_not_published_notification(data: FuelPriceData) -> str:
     """Build a message for manual sending when tomorrow prices are missing."""
     date_text = data.tomorrow_date.strftime("%d.%m.%Y")
     return (
-        f"Maksymalne ceny paliw na jutro, {date_text}\n\n"
+        f"Maksymalne ceny paliw na jutro, {date_text}\n"
         "Ministerstwo Energii nie opublikowało jeszcze cen na jutro."
     )
 
