@@ -1,0 +1,10 @@
+type: entities
+title: Ustawienia powiadomień paliwowych
+entities:
+  # Zastąp poniższe identyfikatory rzeczywistymi encjami utworzonymi dla telefonu.
+  - entity: switch.nazwa_telefonu_powiadomienia
+    name: Powiadomienia
+  - entity: time.nazwa_telefonu_godzina_powiadomienia
+    name: Godzina wysyłki
+  - entity: select.nazwa_telefonu_paliwa_w_powiadomieniu
+    name: Paliwa w wiadomości

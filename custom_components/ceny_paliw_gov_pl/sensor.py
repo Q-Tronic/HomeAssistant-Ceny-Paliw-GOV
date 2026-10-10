@@ -1,4 +1,4 @@
-"""Sensor platform for Ceny paliw GOV.PL."""
+"""Sensor platform for Maksymalne Ceny Paliw GOV.PL."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from homeassistant.components.sensor import SensorEntity, SensorEntityDescriptio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -379,6 +380,7 @@ class FuelPricesStatusSensor(
     _attr_name = "Status publikacji cen paliw"
     _attr_unique_id = f"{DOMAIN}_status"
     _attr_icon = "mdi:information-outline"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, entry: ConfigEntry, coordinator: FuelPriceCoordinator) -> None:
         super().__init__(coordinator)

@@ -1,4 +1,4 @@
-"""Phone notifications for Ceny paliw GOV.PL."""
+"""Phone notifications for Maksymalne Ceny Paliw GOV.PL."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Mapping
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
+from functools import partial
 import logging
 from typing import Any
 
@@ -25,28 +26,20 @@ from .const import (
     CONF_NOTIFICATION_DEVICES,
     CONF_NOTIFICATION_FUELS,
     CONF_NOTIFICATION_MIN_CHANGE_GROSZ,
-    CONF_NOTIFICATION_MODE,
     CONF_NOTIFICATION_ONLY_ON_CHANGE,
-    CONF_NOTIFICATION_TIME,
-    CONF_NOTIFICATIONS_ENABLED,
     DEFAULT_NOTIFICATION_CUSTOM_MESSAGE,
     DEFAULT_NOTIFICATION_CUSTOM_TITLE,
-    DEFAULT_NOTIFICATION_FUELS,
     DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ,
-    DEFAULT_NOTIFICATION_MODE,
     DEFAULT_NOTIFICATION_ONLY_ON_CHANGE,
-    DEFAULT_NOTIFICATION_TIME,
-    DEFAULT_NOTIFICATIONS_ENABLED,
     DEVICE_ENABLED,
+    DEVICE_FUELS,
     DEVICE_NAME,
+    DEVICE_NOTIFICATION_TIME,
     DEVICE_SERVICE,
     DOMAIN,
     FUEL_NAMES,
     FUELS,
     NOTIFICATION_DATA,
-    NOTIFICATION_MODE_ON_PUBLICATION,
-    NOTIFICATION_MODE_SCHEDULED,
-    NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION,
     NOTIFICATION_STORAGE_KEY_PREFIX,
     NOTIFICATION_STORAGE_VERSION,
     NOTIFICATION_TEST_TITLE,
@@ -56,17 +49,14 @@ from .const import (
     UNIT_PRICE,
 )
 from .coordinator import FuelPriceCoordinator
+from .phone_config import (
+    configured_devices,
+    default_device_name,
+    normalize_fuels,
+    time_from_string,
+)
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def default_device_name(target: str) -> str:
-    """Build a readable default name from a mobile_app notify target."""
-    service = target.removeprefix("notify.")
-    service = service.removeprefix("mobile_app_")
-    if not service:
-        return target
-    return service.replace("_", " ").strip().title()
 
 
 def mobile_app_notify_targets(hass: HomeAssistant) -> list[dict[str, str]]:
@@ -86,13 +76,15 @@ def mobile_app_notify_targets(hass: HomeAssistant) -> list[dict[str, str]]:
     return targets
 
 
-def selected_fuels(options: Mapping[str, Any] | None) -> list[str]:
-    """Return valid fuels selected for notifications."""
-    raw = (options or {}).get(CONF_NOTIFICATION_FUELS, DEFAULT_NOTIFICATION_FUELS)
-    if not isinstance(raw, list):
-        return list(FUELS)
-    fuels = [str(fuel) for fuel in raw if str(fuel) in FUELS]
-    return fuels or list(FUELS)
+def selected_fuels(
+    options: Mapping[str, Any] | None,
+    fuels_override: list[str] | tuple[str, ...] | None = None,
+) -> list[str]:
+    """Return valid fuels selected for one notification."""
+    if fuels_override is not None:
+        return normalize_fuels(fuels_override)
+    raw = (options or {}).get(CONF_NOTIFICATION_FUELS, list(FUELS))
+    return normalize_fuels(raw)
 
 
 def _format_price(value: Decimal | None) -> str:
@@ -147,7 +139,7 @@ def build_price_notification(
 ) -> str:
     """Build the notification body with today, tomorrow and price changes."""
     date_text = data.tomorrow_date.strftime("%d.%m.%Y")
-    lines = [f"Ceny paliw na jutro, {date_text}", ""]
+    lines = [f"Maksymalne ceny paliw na jutro, {date_text}", ""]
 
     for fuel in fuels or list(FUELS):
         today = _price(data.today, fuel)
@@ -162,10 +154,10 @@ def build_price_notification(
 
 
 def build_not_published_notification(data: FuelPriceData) -> str:
-    """Build a message for scheduled mode when tomorrow prices are missing."""
+    """Build a message for manual sending when tomorrow prices are missing."""
     date_text = data.tomorrow_date.strftime("%d.%m.%Y")
     return (
-        f"Ceny paliw na jutro, {date_text}\n\n"
+        f"Maksymalne ceny paliw na jutro, {date_text}\n\n"
         "Ministerstwo Energii nie opublikowało jeszcze cen na jutro."
     )
 
@@ -216,10 +208,12 @@ def build_notification_content(
     hass: HomeAssistant,
     data: FuelPriceData,
     options: Mapping[str, Any] | None = None,
+    *,
+    fuels_override: list[str] | tuple[str, ...] | None = None,
 ) -> tuple[str, str]:
     """Build title and body, including optional Home Assistant templates."""
     options = options or {}
-    fuels = selected_fuels(options)
+    fuels = selected_fuels(options, fuels_override)
     default_message = (
         build_price_notification(data, fuels)
         if data.tomorrow is not None
@@ -247,6 +241,8 @@ def build_notification_content(
 def has_relevant_change(
     data: FuelPriceData,
     options: Mapping[str, Any] | None,
+    *,
+    fuels_override: list[str] | tuple[str, ...] | None = None,
 ) -> bool:
     """Return whether an automatic notification passes change filters."""
     options = options or {}
@@ -274,7 +270,7 @@ def has_relevant_change(
         threshold = DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ
 
     required = max(1, threshold)
-    for fuel in selected_fuels(options):
+    for fuel in selected_fuels(options, fuels_override):
         difference = difference_grosz(data.today, data.tomorrow, fuel)
         if difference is not None and abs(difference) >= required:
             return True
@@ -314,7 +310,7 @@ async def async_send_test_notification(
 ) -> None:
     """Send a test notification to one configured phone."""
     message = (
-        "Test powiadomienia z integracji Ceny paliw GOV.PL.\n\n"
+        "Test powiadomienia z integracji Maksymalne Ceny Paliw GOV.PL.\n\n"
         f"Urządzenie: {display_name}"
     )
     await async_send_mobile_notification(
@@ -330,14 +326,21 @@ async def async_send_current_notification(
     target: str,
     data: FuelPriceData,
     options: Mapping[str, Any] | None = None,
+    *,
+    fuels_override: list[str] | tuple[str, ...] | None = None,
 ) -> None:
     """Send the same content used by the normal daily notification."""
-    title, message = build_notification_content(hass, data, options)
+    title, message = build_notification_content(
+        hass,
+        data,
+        options,
+        fuels_override=fuels_override,
+    )
     await async_send_mobile_notification(hass, target, title, message)
 
 
 class FuelPriceNotificationManager:
-    """Schedule and send fuel price notifications."""
+    """Schedule and send per-phone fuel price notifications."""
 
     def __init__(
         self,
@@ -354,48 +357,20 @@ class FuelPriceNotificationManager:
             f"{NOTIFICATION_STORAGE_KEY_PREFIX}.{entry.entry_id}",
         )
         self._state: dict[str, Any] = {}
-        self._unsub_time: CALLBACK_TYPE | None = None
+        self._unsub_times: dict[str, CALLBACK_TYPE] = {}
         self._unsub_coordinator: CALLBACK_TYPE | None = None
         self._send_lock = asyncio.Lock()
         self.last_send_status = "Brak wysyłki"
         self.last_send_at: datetime | None = None
 
     @property
-    def enabled(self) -> bool:
-        return bool(
-            self.entry.options.get(
-                CONF_NOTIFICATIONS_ENABLED,
-                DEFAULT_NOTIFICATIONS_ENABLED,
-            )
-        )
-
-    @property
-    def mode(self) -> str:
-        return str(
-            self.entry.options.get(
-                CONF_NOTIFICATION_MODE,
-                DEFAULT_NOTIFICATION_MODE,
-            )
-        )
-
-    @property
-    def notification_time(self) -> str:
-        return str(
-            self.entry.options.get(
-                CONF_NOTIFICATION_TIME,
-                DEFAULT_NOTIFICATION_TIME,
-            )
-        )
-
-    @property
     def devices(self) -> list[dict[str, Any]]:
-        raw = self.entry.options.get(CONF_NOTIFICATION_DEVICES, [])
-        if not isinstance(raw, list):
-            return []
-        return [dict(item) for item in raw if isinstance(item, Mapping)]
+        """Return normalized phone configuration."""
+        return configured_devices(self.entry.options)
 
     @property
     def enabled_devices(self) -> list[dict[str, Any]]:
+        """Return phones enabled for automatic notifications."""
         return [
             device
             for device in self.devices
@@ -423,24 +398,12 @@ class FuelPriceNotificationManager:
         self._unsub_coordinator = self.coordinator.async_add_listener(
             self._handle_coordinator_update
         )
-
-        if self.mode != NOTIFICATION_MODE_ON_PUBLICATION:
-            hour, minute, second = self._parse_time(self.notification_time)
-            self._unsub_time = async_track_time_change(
-                self.hass,
-                self._async_scheduled_time,
-                hour=hour,
-                minute=minute,
-                second=second,
-            )
-
-        await self._async_evaluate_startup()
+        await self.async_reschedule()
+        await self._async_evaluate_current_day()
 
     async def async_stop(self) -> None:
         """Stop notification listeners."""
-        if self._unsub_time is not None:
-            self._unsub_time()
-            self._unsub_time = None
+        self._cancel_time_listeners()
         if self._unsub_coordinator is not None:
             self._unsub_coordinator()
             self._unsub_coordinator = None
@@ -453,20 +416,32 @@ class FuelPriceNotificationManager:
                     self._target_issue_id(target),
                 )
 
-    @staticmethod
-    def _parse_time(value: str) -> tuple[int, int, int]:
-        try:
-            parts = [int(part) for part in value.split(":")]
-        except ValueError:
-            return 18, 0, 0
-        if len(parts) == 2:
-            parts.append(0)
-        if len(parts) != 3:
-            return 18, 0, 0
-        hour, minute, second = parts
-        if not 0 <= hour <= 23 or not 0 <= minute <= 59 or not 0 <= second <= 59:
-            return 18, 0, 0
-        return hour, minute, second
+    async def async_options_changed(self) -> None:
+        """Apply dashboard changes to per-phone scheduling immediately."""
+        self._sync_target_repairs()
+        self._normalize_waiting_targets()
+        await self._async_save_state()
+        await self.async_reschedule()
+        await self._async_evaluate_current_day()
+
+    async def async_reschedule(self) -> None:
+        """Create one daily time listener for each enabled phone."""
+        self._cancel_time_listeners()
+        for device in self.enabled_devices:
+            target = str(device[DEVICE_SERVICE])
+            notification_time = time_from_string(device.get(DEVICE_NOTIFICATION_TIME))
+            self._unsub_times[target] = async_track_time_change(
+                self.hass,
+                partial(self._async_scheduled_target, target),
+                hour=notification_time.hour,
+                minute=notification_time.minute,
+                second=notification_time.second,
+            )
+
+    def _cancel_time_listeners(self) -> None:
+        for unsubscribe in self._unsub_times.values():
+            unsubscribe()
+        self._unsub_times.clear()
 
     @staticmethod
     def _target_issue_id(target: str) -> str:
@@ -505,7 +480,6 @@ class FuelPriceNotificationManager:
         return self.coordinator.data.tomorrow_date.isoformat()
 
     def _notified_services(self) -> set[str]:
-        """Return services already notified for the current target date."""
         if self._state.get("notified_for") != self._target_date():
             return set()
         services = self._state.get("notified_services", [])
@@ -513,179 +487,214 @@ class FuelPriceNotificationManager:
             return set()
         return {str(service) for service in services}
 
-    def _enabled_service_names(self) -> set[str]:
-        """Return currently enabled notify service names."""
-        return {str(device[DEVICE_SERVICE]) for device in self.enabled_devices}
+    def _waiting_services(self) -> set[str]:
+        if self._state.get("waiting_for_date") != self._target_date():
+            return set()
+        services = self._state.get("waiting_services", [])
+        if not isinstance(services, list):
+            return set()
+        return {str(service) for service in services}
 
-    def _already_notified(self) -> bool:
-        enabled = self._enabled_service_names()
-        return bool(enabled) and enabled.issubset(self._notified_services())
+    def _device_map(self) -> dict[str, dict[str, Any]]:
+        return {
+            str(device[DEVICE_SERVICE]): device
+            for device in self.devices
+            if device.get(DEVICE_SERVICE)
+        }
 
-    def _pending_devices(self) -> list[dict[str, Any]]:
-        """Return enabled devices which still need the current notification."""
-        notified = self._notified_services()
-        return [
-            device
+    def _enabled_device_map(self) -> dict[str, dict[str, Any]]:
+        return {
+            str(device[DEVICE_SERVICE]): device
             for device in self.enabled_devices
-            if str(device[DEVICE_SERVICE]) not in notified
-        ]
+            if device.get(DEVICE_SERVICE)
+        }
+
+    def _is_notified(self, target: str) -> bool:
+        return target in self._notified_services()
+
+    def _normalize_waiting_targets(self) -> None:
+        """Drop waits for disabled phones, future times or old target dates."""
+        if self._state.get("waiting_for_date") != self._target_date():
+            self._state.pop("waiting_for_date", None)
+            self._state.pop("waiting_services", None)
+            return
+
+        now = dt_util.now()
+        now_seconds = now.hour * 3600 + now.minute * 60 + now.second
+        enabled = self._enabled_device_map()
+        waiting: set[str] = set()
+        for target in self._waiting_services():
+            device = enabled.get(target)
+            if device is None:
+                continue
+            scheduled = time_from_string(device.get(DEVICE_NOTIFICATION_TIME))
+            scheduled_seconds = scheduled.hour * 3600 + scheduled.minute * 60 + scheduled.second
+            if now_seconds >= scheduled_seconds and not self._is_notified(target):
+                waiting.add(target)
+
+        if waiting:
+            self._state["waiting_for_date"] = self._target_date()
+            self._state["waiting_services"] = sorted(waiting)
+        else:
+            self._state.pop("waiting_for_date", None)
+            self._state.pop("waiting_services", None)
 
     async def _async_save_state(self) -> None:
         await self._store.async_save(self._state)
+
+    async def _async_add_waiting(self, target: str) -> None:
+        waiting = self._waiting_services()
+        waiting.add(target)
+        self._state["waiting_for_date"] = self._target_date()
+        self._state["waiting_services"] = sorted(waiting)
+        await self._async_save_state()
+
+    async def _async_remove_waiting(self, targets: set[str]) -> None:
+        waiting = self._waiting_services()
+        waiting.difference_update(targets)
+        if waiting:
+            self._state["waiting_for_date"] = self._target_date()
+            self._state["waiting_services"] = sorted(waiting)
+        else:
+            self._state.pop("waiting_for_date", None)
+            self._state.pop("waiting_services", None)
+        await self._async_save_state()
+
+    async def _async_mark_notified(self, targets: set[str]) -> None:
+        if not targets:
+            return
+        notified = self._notified_services()
+        notified.update(targets)
+        self._state["notified_for"] = self._target_date()
+        self._state["notified_services"] = sorted(notified)
+        waiting = self._waiting_services()
+        waiting.difference_update(targets)
+        if waiting:
+            self._state["waiting_for_date"] = self._target_date()
+            self._state["waiting_services"] = sorted(waiting)
+        else:
+            self._state.pop("waiting_for_date", None)
+            self._state.pop("waiting_services", None)
+        await self._async_save_state()
 
     @callback
     def _handle_coordinator_update(self) -> None:
         self._sync_target_repairs()
         self.hass.async_create_task(
             self._async_handle_coordinator_update(),
-            "Ceny paliw GOV.PL powiadomienia po aktualizacji danych",
+            "Maksymalne Ceny Paliw GOV.PL powiadomienia po aktualizacji danych",
         )
 
     async def _async_handle_coordinator_update(self) -> None:
-        if not self.enabled or not self.enabled_devices or self._already_notified():
+        if self.coordinator.data.tomorrow is None:
             return
+        enabled = self._enabled_device_map()
+        waiting = [
+            enabled[target]
+            for target in sorted(self._waiting_services())
+            if target in enabled and not self._is_notified(target)
+        ]
+        if waiting:
+            await self._async_send_devices(waiting, mark_notified=True, apply_filters=True)
 
-        target_date = self._target_date()
-        waiting_for = self._state.get("waiting_for_date")
-        if waiting_for and waiting_for != target_date:
-            self._state.pop("waiting_for_date", None)
-            await self._async_save_state()
-
-        if self.mode == NOTIFICATION_MODE_ON_PUBLICATION:
-            if self.coordinator.data.tomorrow is not None:
-                await self._async_send_price_notification()
-            return
-
-        if self.mode == NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION:
-            if (
-                self._state.get("waiting_for_date") == target_date
-                and self.coordinator.data.tomorrow is not None
-            ):
-                await self._async_send_price_notification()
-
-    async def _async_scheduled_time(self, _now: datetime) -> None:
-        if not self.enabled or not self.enabled_devices:
+    async def _async_scheduled_target(self, target: str, _now: datetime) -> None:
+        """Handle the configured daily time for one phone."""
+        device = self._enabled_device_map().get(target)
+        if device is None or self._is_notified(target):
             return
 
         await self.coordinator.async_request_refresh()
         if not self.coordinator.last_update_success:
             return
-        if self._already_notified():
+        if self._is_notified(target):
             return
 
-        if self.mode == NOTIFICATION_MODE_SCHEDULED:
-            if self.coordinator.data.tomorrow is not None:
-                await self._async_send_price_notification()
-            else:
-                await self._async_send_not_published_notification()
+        if self.coordinator.data.tomorrow is not None:
+            await self._async_send_devices([device], mark_notified=True, apply_filters=True)
             return
+        await self._async_add_waiting(target)
 
-        if self.mode == NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION:
-            if self.coordinator.data.tomorrow is not None:
-                await self._async_send_price_notification()
-                return
-            self._state["waiting_for_date"] = self._target_date()
-            await self._async_save_state()
-
-    async def _async_evaluate_startup(self) -> None:
-        if not self.enabled or not self.enabled_devices or self._already_notified():
-            return
-
-        if self.mode == NOTIFICATION_MODE_ON_PUBLICATION:
-            if self.coordinator.data.tomorrow is not None:
-                await self._async_send_price_notification()
-            return
-
+    async def _async_evaluate_current_day(self) -> None:
+        """Catch up phones whose configured time has already passed."""
         now = dt_util.now()
-        hour, minute, second = self._parse_time(self.notification_time)
-        scheduled_seconds = hour * 3600 + minute * 60 + second
         now_seconds = now.hour * 3600 + now.minute * 60 + now.second
-        if now_seconds < scheduled_seconds:
+        due: list[dict[str, Any]] = []
+        for device in self.enabled_devices:
+            target = str(device[DEVICE_SERVICE])
+            if self._is_notified(target):
+                continue
+            scheduled = time_from_string(device.get(DEVICE_NOTIFICATION_TIME))
+            scheduled_seconds = scheduled.hour * 3600 + scheduled.minute * 60 + scheduled.second
+            if now_seconds >= scheduled_seconds:
+                due.append(device)
+
+        if not due:
             return
-
-        if self.mode == NOTIFICATION_MODE_SCHEDULED:
-            if self.coordinator.data.tomorrow is not None:
-                await self._async_send_price_notification()
-            else:
-                await self._async_send_not_published_notification()
+        if self.coordinator.data.tomorrow is not None:
+            await self._async_send_devices(due, mark_notified=True, apply_filters=True)
             return
-
-        if self.mode == NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION:
-            if self.coordinator.data.tomorrow is not None:
-                await self._async_send_price_notification()
-            else:
-                self._state["waiting_for_date"] = self._target_date()
-                await self._async_save_state()
-
-    async def _async_mark_filtered_as_done(self) -> None:
-        """Mark a date as handled when notification filters intentionally skip it."""
-        target_date = self._target_date()
-        self._state["notified_for"] = target_date
-        self._state["notified_services"] = sorted(self._enabled_service_names())
-        self._state.pop("waiting_for_date", None)
-        self.last_send_status = "Pominięto zgodnie z filtrem zmian"
-        await self._async_save_state()
-
-    async def _async_send_price_notification(self) -> None:
-        if not has_relevant_change(self.coordinator.data, self.entry.options):
-            await self._async_mark_filtered_as_done()
-            return
-        title, message = build_notification_content(
-            self.hass,
-            self.coordinator.data,
-            self.entry.options,
-        )
-        await self._async_send_to_enabled_devices(
-            title,
-            message,
-            mark_notified=True,
-        )
-
-    async def _async_send_not_published_notification(self) -> None:
-        title, message = build_notification_content(
-            self.hass,
-            self.coordinator.data,
-            self.entry.options,
-        )
-        await self._async_send_to_enabled_devices(
-            title,
-            message,
-            mark_notified=True,
-        )
+        for device in due:
+            await self._async_add_waiting(str(device[DEVICE_SERVICE]))
 
     async def async_send_now_to_all(self) -> int:
         """Send the current daily-format notification to all enabled phones."""
         self._sync_target_repairs()
-        title, message = build_notification_content(
-            self.hass,
-            self.coordinator.data,
-            self.entry.options,
-        )
-        return await self._async_send_to_enabled_devices(
-            title,
-            message,
+        return await self._async_send_devices(
+            self.enabled_devices,
             mark_notified=False,
+            apply_filters=False,
         )
 
-    async def _async_send_to_enabled_devices(
+    async def async_send_now_to_target(self, target: str) -> bool:
+        """Send the current daily-format notification to one configured phone."""
+        device = self._device_map().get(target)
+        if device is None:
+            return False
+        count = await self._async_send_devices(
+            [device],
+            mark_notified=False,
+            apply_filters=False,
+        )
+        return bool(count)
+
+    async def _async_send_devices(
         self,
-        title: str,
-        message: str,
+        devices: list[dict[str, Any]],
         *,
         mark_notified: bool,
+        apply_filters: bool,
     ) -> int:
-        async with self._send_lock:
-            devices = self._pending_devices() if mark_notified else self.enabled_devices
-            if not devices:
-                self.last_send_status = "Brak włączonych telefonów do wysyłki"
-                return 0
+        """Send individualized notification content to a list of phones."""
+        if not devices:
+            self.last_send_status = "Brak włączonych telefonów do wysyłki"
+            return 0
 
-            successful_services: set[str] = set()
+        async with self._send_lock:
+            successful: set[str] = set()
+            filtered: set[str] = set()
+            attempted_targets: set[str] = set()
+
             for device in devices:
-                target = str(device[DEVICE_SERVICE])
-                display_name = str(
-                    device.get(DEVICE_NAME) or default_device_name(target)
+                target = str(device.get(DEVICE_SERVICE, ""))
+                if not target:
+                    continue
+                fuels = normalize_fuels(device.get(DEVICE_FUELS))
+                if apply_filters and not has_relevant_change(
+                    self.coordinator.data,
+                    self.entry.options,
+                    fuels_override=fuels,
+                ):
+                    filtered.add(target)
+                    continue
+
+                title, message = build_notification_content(
+                    self.hass,
+                    self.coordinator.data,
+                    self.entry.options,
+                    fuels_override=fuels,
                 )
+                display_name = str(device.get(DEVICE_NAME) or default_device_name(target))
+                attempted_targets.add(target)
                 try:
                     await async_send_mobile_notification(
                         self.hass,
@@ -700,25 +709,22 @@ class FuelPriceNotificationManager:
                         target,
                     )
                 else:
-                    successful_services.add(target)
+                    successful.add(target)
+
+            handled = successful | filtered
+            failed = attempted_targets - successful
+            if mark_notified:
+                if handled:
+                    await self._async_mark_notified(handled)
+                for target in sorted(failed):
+                    await self._async_add_waiting(target)
 
             self.last_send_at = dt_util.now()
-            self.last_send_status = (
-                f"Wysłano: {len(successful_services)}/{len(devices)}"
-            )
-
-            if not mark_notified or not successful_services:
-                return len(successful_services)
-
-            target_date = self._target_date()
-            notified = self._notified_services()
-            notified.update(successful_services)
-            self._state["notified_for"] = target_date
-            self._state["notified_services"] = sorted(notified)
-
-            if self._enabled_service_names().issubset(notified):
-                self._state.pop("waiting_for_date", None)
-            elif self.mode == NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION:
-                self._state["waiting_for_date"] = target_date
-            await self._async_save_state()
-            return len(successful_services)
+            if filtered and not attempted_targets:
+                self.last_send_status = f"Pominięto filtrem: {len(filtered)}"
+            else:
+                self.last_send_status = (
+                    f"Wysłano: {len(successful)}/{len(attempted_targets)}; "
+                    f"pominięto filtrem: {len(filtered)}"
+                )
+            return len(successful)

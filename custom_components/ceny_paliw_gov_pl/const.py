@@ -1,19 +1,20 @@
-"""Constants for the Ceny paliw GOV.PL integration."""
+"""Constants for the Maksymalne Ceny Paliw GOV.PL integration."""
 
 from __future__ import annotations
 
 from datetime import timedelta
 
 DOMAIN = "ceny_paliw_gov_pl"
-NAME = "Ceny paliw GOV.PL"
-VERSION = "1.3.1"
+NAME = "Maksymalne Ceny Paliw GOV.PL"
+VERSION = "1.4.0"
 AUTHOR = "Q-Tronic"
 
 NEWS_URL = "https://www.gov.pl/web/energia/wiadomosci"
 REPOSITORY_URL = "https://github.com/Q-Tronic/HomeAssistant-Ceny-Paliw-GOV"
 ISSUE_TRACKER_URL = f"{REPOSITORY_URL}/issues"
 
-UPDATE_INTERVAL = timedelta(minutes=30)
+DEFAULT_UPDATE_INTERVAL_MINUTES = 30
+UPDATE_INTERVAL_MINUTES_OPTIONS = (5, 10, 15, 30, 60)
 STALE_DATA_AFTER = timedelta(minutes=75)
 REQUEST_TIMEOUT_SECONDS = 20
 USER_AGENT = f"HomeAssistant-{DOMAIN}/{VERSION} (+{REPOSITORY_URL})"
@@ -29,6 +30,16 @@ FUEL_NAMES: dict[str, str] = {
     FUEL_ON: "ON",
 }
 
+FUEL_SELECTION_OPTIONS: dict[str, tuple[str, ...]] = {
+    "PB95": (FUEL_PB95,),
+    "PB98": (FUEL_PB98,),
+    "ON": (FUEL_ON,),
+    "PB95 + PB98": (FUEL_PB95, FUEL_PB98),
+    "PB95 + ON": (FUEL_PB95, FUEL_ON),
+    "PB98 + ON": (FUEL_PB98, FUEL_ON),
+    "PB95 + PB98 + ON": (FUEL_PB95, FUEL_PB98, FUEL_ON),
+}
+
 STATUS_NOT_PUBLISHED = "Nie opublikowano"
 STATUS_NO_CHANGE = "bez zmian"
 STATUS_PUBLISHED = "Opublikowano"
@@ -41,43 +52,46 @@ UNIT_GROSZ = "gr"
 
 EVENT_PRICES_UPDATED = f"{DOMAIN}_updated"
 
-CONF_NOTIFICATIONS_ENABLED = "notifications_enabled"
-CONF_NOTIFICATION_TIME = "notification_time"
-CONF_NOTIFICATION_MODE = "notification_mode"
-CONF_NOTIFICATION_SERVICES = "notification_services"
+CONF_UPDATE_INTERVAL_MINUTES = "update_interval_minutes"
 CONF_NOTIFICATION_DEVICES = "notification_devices"
+CONF_NOTIFICATION_SERVICES = "notification_services"
 CONF_SELECTED_DEVICE = "selected_device"
 CONF_DEVICE_NAME = "device_name"
 CONF_DEVICE_ENABLED = "device_enabled"
-CONF_NOTIFICATION_FUELS = "notification_fuels"
+CONF_DEVICE_NOTIFICATION_TIME = "device_notification_time"
+CONF_DEVICE_NOTIFICATION_FUELS = "device_notification_fuels"
 CONF_NOTIFICATION_ONLY_ON_CHANGE = "notification_only_on_change"
 CONF_NOTIFICATION_MIN_CHANGE_GROSZ = "notification_min_change_grosz"
 CONF_NOTIFICATION_CUSTOM_TITLE = "notification_custom_title"
 CONF_NOTIFICATION_CUSTOM_MESSAGE = "notification_custom_message"
 
+# Klucze pozostawione dla zgodności z konfiguracją wersji 1.3.x.
+CONF_NOTIFICATIONS_ENABLED = "notifications_enabled"
+CONF_NOTIFICATION_TIME = "notification_time"
+CONF_NOTIFICATION_MODE = "notification_mode"
+CONF_NOTIFICATION_FUELS = "notification_fuels"
+
 DEVICE_SERVICE = "service"
 DEVICE_NAME = "name"
 DEVICE_ENABLED = "enabled"
+DEVICE_NOTIFICATION_TIME = "notification_time"
+DEVICE_FUELS = "fuels"
 
-NOTIFICATION_MODE_SCHEDULED = "scheduled"
-NOTIFICATION_MODE_ON_PUBLICATION = "on_publication"
-NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION = "scheduled_then_publication"
-NOTIFICATION_MODES = (
-    NOTIFICATION_MODE_SCHEDULED,
-    NOTIFICATION_MODE_ON_PUBLICATION,
-    NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION,
-)
-
-DEFAULT_NOTIFICATIONS_ENABLED = False
 DEFAULT_NOTIFICATION_TIME = "18:00:00"
-DEFAULT_NOTIFICATION_MODE = NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION
 DEFAULT_NOTIFICATION_FUELS = list(FUELS)
 DEFAULT_NOTIFICATION_ONLY_ON_CHANGE = False
 DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ = 0
 DEFAULT_NOTIFICATION_CUSTOM_TITLE = ""
 DEFAULT_NOTIFICATION_CUSTOM_MESSAGE = ""
+DEFAULT_NOTIFICATIONS_ENABLED = True
 
-NOTIFICATION_TITLE = "Ceny paliw GOV.PL"
+# Zachowane wyłącznie dla migracji starszych ustawień.
+NOTIFICATION_MODE_SCHEDULED = "scheduled"
+NOTIFICATION_MODE_ON_PUBLICATION = "on_publication"
+NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION = "scheduled_then_publication"
+DEFAULT_NOTIFICATION_MODE = NOTIFICATION_MODE_SCHEDULED_THEN_PUBLICATION
+
+NOTIFICATION_TITLE = "Maksymalne Ceny Paliw GOV.PL"
 NOTIFICATION_TEST_TITLE = "Test powiadomienia"
 NOTIFICATION_DATA = {
     "ttl": 0,

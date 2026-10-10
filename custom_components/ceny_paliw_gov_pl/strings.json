@@ -1,100 +1,93 @@
 {
-  "title": "Polish fuel prices GOV.PL",
+  "title": "Maximum Fuel Prices GOV.PL",
   "config": {
     "step": {
       "user": {
-        "title": "Polish fuel prices GOV.PL",
-        "description": "Add the integration that downloads maximum retail fuel prices published by the Polish Ministry of Energy on gov.pl. Data is checked automatically every 30 minutes."
+        "title": "Maximum Fuel Prices GOV.PL",
+        "description": "Add the integration that downloads maximum retail fuel prices published by the Polish Ministry of Energy on gov.pl. Data is checked every 30 minutes by default."
+      },
+      "reconfigure": {
+        "title": "Source and refresh configuration",
+        "description": "Change how often the integration checks gov.pl for new publications. The integration will reload after the change.",
+        "data": {
+          "update_interval_minutes": "GOV.PL check interval"
+        },
+        "data_description": {
+          "update_interval_minutes": "Choose the automatic data refresh interval."
+        }
       }
     },
     "abort": {
-      "single_instance_allowed": "This integration can only be configured once."
+      "single_instance_allowed": "This integration can only be configured once.",
+      "reconfigure_successful": "Configuration updated successfully."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Ceny paliw GOV.PL configuration",
-        "description": "Choose a configuration section. Changes are applied after selecting Save and finish.",
+        "title": "Maximum Fuel Prices GOV.PL configuration",
+        "description": "Choose a configuration section. The administrator adds phones here, while users can later control notification enablement, time and fuel selection from dashboard entities.",
         "menu_options": {
-          "notification_settings": "Notifications: schedule",
-          "notification_content": "Notifications: content and fuels",
-          "notification_filters": "Notifications: change filters",
           "phones": "Phones",
+          "notification_content": "Notifications: content",
+          "notification_filters": "Notifications: change filters",
           "diagnostics": "Diagnostics and actions",
           "save": "Save and finish"
         },
         "menu_option_descriptions": {
-          "notification_settings": "Enable notifications, set the time and automatic delivery mode.",
-          "notification_content": "Choose fuels and optionally customize the title or message.",
-          "notification_filters": "Send only on price changes and set a minimum change in grosz.",
-          "phones": "Add, remove and configure phones individually.",
-          "diagnostics": "Check source status, history, phones and run manual actions.",
+          "phones": "Add, remove and configure phones. Each phone receives its own switch, time and select dashboard entities.",
+          "notification_content": "Optionally customize the notification title or message.",
+          "notification_filters": "Send only on price changes and set a minimum difference.",
+          "diagnostics": "Check source status, history and notification targets, and run manual actions.",
           "save": "Save all changes and reload the integration."
         }
       },
-      "notification_settings": {
-        "title": "Notification schedule",
-        "description": "Configure general automatic notification rules.",
-        "data": {
-          "notifications_enabled": "Enable automatic notifications",
-          "notification_time": "Notification time",
-          "notification_mode": "Delivery mode"
-        },
-        "data_description": {
-          "notifications_enabled": "Master switch for automatic delivery. Manual buttons remain available.",
-          "notification_time": "Time used by delivery modes with scheduled sending.",
-          "notification_mode": "By default the integration sends at the selected time. If tomorrow's prices are not available yet, it waits and sends after publication is detected."
-        }
-      },
       "notification_content": {
-        "title": "Notification content and fuels",
-        "description": "Choose fuels. Empty template fields use the default content. Templates can use `today_date`, `tomorrow_date`, `published`, `pb95`, `pb98` and `on`. Each fuel exposes `today`, `tomorrow`, `today_text`, `tomorrow_text`, `change` and `difference_grosz`. Example: `{{ pb95.change }}`.",
+        "title": "Notification content",
+        "description": "Fuel selection is configured separately for each phone. Empty template fields use the default content. Templates can use `today_date`, `tomorrow_date`, `published`, `pb95`, `pb98` and `on`. Each fuel exposes `today`, `tomorrow`, `today_text`, `tomorrow_text`, `change` and `difference_grosz`.",
         "data": {
-          "notification_fuels": "Fuels in notification",
           "notification_custom_title": "Custom title, optional",
           "notification_custom_message": "Custom message, optional"
         },
         "data_description": {
-          "notification_fuels": "PB95, PB98 and diesel are included by default.",
           "notification_custom_title": "Supports Home Assistant templates. Leave empty to use the default title.",
           "notification_custom_message": "Supports Home Assistant templates. Leave empty to use the default message with prices and changes."
         }
       },
       "notification_filters": {
         "title": "Price change filters",
-        "description": "You can limit automatic messages to days when selected fuels changed price.",
+        "description": "You can limit automatic messages to days when one of the fuels selected for that phone changes price.",
         "data": {
           "notification_only_on_change": "Send only when the price changes",
           "notification_min_change_grosz": "Minimum price change"
         },
         "data_description": {
-          "notification_only_on_change": "If none of the selected fuels match the condition, the message for that day is skipped.",
-          "notification_min_change_grosz": "The threshold is used when change-only delivery is enabled. A value of 0 means any change greater than 0gr."
+          "notification_only_on_change": "If none of the fuels selected for the phone match the condition, that phone's message is skipped.",
+          "notification_min_change_grosz": "A value of 0 means any change greater than 0gr."
         }
       },
       "phones": {
         "title": "Phones",
-        "description": "Configured phones: {count}. Each phone can be edited separately.",
+        "description": "Configured phones: {count}. Each phone has its own notification time, fuel selection and enable switch.",
         "menu_options": {
           "phone_list": "Add or remove phones",
           "choose_phone": "Configure a selected phone",
           "init": "Back to main menu"
         },
         "menu_option_descriptions": {
-          "phone_list": "Edit the list of phones available to this integration.",
-          "choose_phone": "Choose one phone and open its individual submenu.",
+          "phone_list": "Edit the list of phones available to users.",
+          "choose_phone": "Choose one phone and open its configuration.",
           "init": "Return to the main configuration menu."
         }
       },
       "phone_list": {
         "title": "Phone list",
-        "description": "Select phones registered by the Home Assistant Companion app. You can edit this list later.",
+        "description": "Select phones registered by the Home Assistant Companion app. After saving, each phone receives its own dashboard entities.",
         "data": {
           "notification_services": "Phones to notify"
         },
         "data_description": {
-          "notification_services": "Adding a phone does not force automatic delivery. Each phone has its own switch in its submenu."
+          "notification_services": "The administrator decides which phones are available in the integration. Users can later control their phone settings from a dashboard."
         }
       },
       "choose_phone": {
@@ -106,7 +99,7 @@
       },
       "phone_menu": {
         "title": "Phone: {device}",
-        "description": "Home Assistant target: `{target}`. Automatic delivery to this phone: {enabled}. Last action: {status}",
+        "description": "Home Assistant target: `{target}`. Notifications: {enabled}. Time: {time}. Fuels: {fuels}. Last action: {status}",
         "menu_options": {
           "phone_settings": "Phone settings",
           "phone_test": "Send test",
@@ -115,7 +108,7 @@
           "phones": "Back to phone menu"
         },
         "menu_option_descriptions": {
-          "phone_settings": "Change the phone name and enable or disable automatic notifications.",
+          "phone_settings": "Change the name, notification enablement, time and fuels for this phone.",
           "phone_test": "Immediately send a short test notification only to this phone.",
           "phone_send_now": "Immediately send this phone a message in the same format as the daily notification.",
           "choose_phone": "Go directly to another phone configuration.",
@@ -124,14 +117,18 @@
       },
       "phone_settings": {
         "title": "Phone settings: {device}",
-        "description": "Home Assistant target: `{target}`. Manual test and current notification actions are available in the phone submenu.",
+        "description": "Home Assistant target: `{target}`. The same enable, time and fuel settings are also available as dashboard entities.",
         "data": {
           "device_name": "Phone name",
-          "device_enabled": "Send automatic notifications to this phone"
+          "device_enabled": "Send automatic notifications",
+          "device_notification_time": "Notification time",
+          "device_notification_fuels": "Fuels in notification"
         },
         "data_description": {
           "device_name": "Enter a custom name or keep the default name.",
-          "device_enabled": "When disabled, the phone remains on the list but is skipped for daily automatic notifications."
+          "device_enabled": "When disabled, the phone remains configured but receives no automatic messages.",
+          "device_notification_time": "If tomorrow's prices are not published at this time, the integration waits and sends after publication is detected.",
+          "device_notification_fuels": "Choose PB95, PB98, diesel, any pair, or all three fuels."
         }
       },
       "diagnostics": {
@@ -144,18 +141,9 @@
         },
         "menu_option_descriptions": {
           "diagnostics_refresh": "Immediately check gov.pl and refresh entities.",
-          "diagnostics_send_all": "Send the current daily message to all enabled phones.",
+          "diagnostics_send_all": "Send the current daily message to all enabled phones using each phone's individual fuel selection.",
           "init": "Return to the main configuration menu."
         }
-      }
-    }
-  },
-  "selector": {
-    "notification_mode": {
-      "options": {
-        "scheduled": "At the configured time",
-        "on_publication": "Immediately after new prices are published",
-        "scheduled_then_publication": "At the configured time, or immediately after publication if prices are not available yet (default)"
       }
     }
   },

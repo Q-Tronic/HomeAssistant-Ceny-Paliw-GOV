@@ -1,8 +1,8 @@
-"""Data update coordinator for Ceny paliw GOV.PL."""
+"""Data update coordinator for Maksymalne Ceny Paliw GOV.PL."""
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from typing import Any
 
@@ -14,7 +14,13 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .api import FuelPriceApi, FuelPriceApiError, FuelPriceData, FuelPriceParseError
-from .const import DOMAIN, EVENT_PRICES_UPDATED, UPDATE_INTERVAL
+from .const import (
+    CONF_UPDATE_INTERVAL_MINUTES,
+    DEFAULT_UPDATE_INTERVAL_MINUTES,
+    DOMAIN,
+    EVENT_PRICES_UPDATED,
+    UPDATE_INTERVAL_MINUTES_OPTIONS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,12 +29,24 @@ class FuelPriceCoordinator(DataUpdateCoordinator[FuelPriceData]):
     """Coordinate updates from gov.pl."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        try:
+            interval_minutes = int(
+                entry.data.get(
+                    CONF_UPDATE_INTERVAL_MINUTES,
+                    DEFAULT_UPDATE_INTERVAL_MINUTES,
+                )
+            )
+        except (TypeError, ValueError):
+            interval_minutes = DEFAULT_UPDATE_INTERVAL_MINUTES
+        if interval_minutes not in UPDATE_INTERVAL_MINUTES_OPTIONS:
+            interval_minutes = DEFAULT_UPDATE_INTERVAL_MINUTES
+
         super().__init__(
             hass,
             _LOGGER,
             config_entry=entry,
             name=DOMAIN,
-            update_interval=UPDATE_INTERVAL,
+            update_interval=timedelta(minutes=interval_minutes),
         )
         self._api = FuelPriceApi(async_get_clientsession(hass))
         self._last_data_fingerprint: tuple[Any, ...] | None = None

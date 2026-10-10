@@ -1,47 +1,30 @@
 # Changelog
 
+## 1.4.0
+
+- Zmieniono nazwę integracji na `Maksymalne Ceny Paliw GOV.PL`.
+- Dodano osobny `switch` dla każdego telefonu, który włącza lub wyłącza automatyczne powiadomienia z dashboardu.
+- Dodano osobną encję `time` dla każdego telefonu do ustawiania godziny codziennej wiadomości.
+- Dodano osobną encję `select` dla każdego telefonu do wyboru PB95, PB98, ON, dwóch paliw albo wszystkich trzech.
+- Przebudowano scheduler powiadomień na harmonogram per telefon.
+- Jeżeli cena nie jest opublikowana o godzinie danego telefonu, tylko ten telefon czeka na publikację i dostaje wiadomość po jej wykryciu.
+- Telefon z późniejszą godziną czeka do swojej godziny, nawet gdy publikacja pojawiła się wcześniej.
+- Ustawienia zmieniane przez encje dashboardu są zapisywane od razu, bez restartu Home Assistanta.
+- Dodano migrację ustawień telefonów z wersji 1.3.x do modelu per telefon.
+- Dodano prawdziwy reconfigure flow dla interwału sprawdzania gov.pl.
+- Dostępne interwały sprawdzania: 5, 10, 15, 30 i 60 minut.
+- Sensor statusu publikacji oznaczono kategorią `diagnostic`.
+- Zaktualizowano diagnostykę, menu konfiguracji, tłumaczenia i README.
+- Usunięto z paczki plik `AKTUALIZACJA-GITHUB-DESKTOP.md`.
+
 ## 1.3.1
 
-- Naprawiono pobieranie cen weekendowych, gdy GOV.PL używa w tytule zwrotu `w dniach`, np. `10-12 października 2026 r.`.
-- Zachowano obsługę wcześniejszego wariantu `w okresie`.
-- Dodano test regresyjny na rzeczywistym formacie publikacji z 9 października 2026 r.
+- Poprawiono wykrywanie weekendowych publikacji GOV.PL zapisanych jako `obowiązująca w dniach`.
+- Zachowano obsługę wariantu `w okresie`.
+- Dodano test regresyjny dla publikacji weekendowej.
 
 ## 1.3.0
 
-- Dodano menu konfiguracji podzielone na harmonogram, treść, filtry, telefony i diagnostykę.
-- Dodano wybór paliw widocznych w powiadomieniach.
-- Dodano własny tytuł i treść powiadomień z obsługą szablonów Home Assistant.
-- Dodano opcję wysyłania tylko przy zmianie ceny.
-- Dodano minimalny próg zmiany w groszach.
-- Dodano sensor statusu publikacji i pobierania danych.
-- Dodano przycisk `Sprawdź ceny teraz`.
-- Dodano przycisk `Wyślij wszystkim teraz`.
-- Dodano lokalną historię cen do 120 dni.
-- Dodano sensory średnich cen dla 7, 30 i 90 dni dla PB95, PB98 i ON.
-- Dodano minimum, maksimum, liczbę próbek i zmianę procentową w atrybutach statystyk.
-- Dodano binarne sensory informujące, czy dane paliwo będzie jutro droższe.
-- Dodano atrybut `trend` i procentową zmianę ceny do encji porównawczych.
-- Dodano zdarzenie `ceny_paliw_gov_pl_updated` przy zmianie pobranych danych.
-- Dodano ostrzeżenie Repairs, gdy parser gov.pl przestanie rozpoznawać publikacje.
-- Dodano ostrzeżenie Repairs dla niedostępnego skonfigurowanego telefonu.
-- Rozbudowano standardową diagnostykę Home Assistanta.
-- Dodano gotowy przykład karty Lovelace.
-- Dodano przykładową automatyzację reagującą na zdarzenie aktualizacji.
-- Zachowano indywidualne podmenu telefonów, test powiadomienia oraz ręczne wysyłanie bieżącej wiadomości.
-
-## 1.2.1
-
-- Poprawne wydanie zmian interfejsu powiadomień z linii 1.2.
-
-## 1.2.0
-
-- Dodano menu i podmenu konfiguracji telefonów.
-- Dodano ręczne wysłanie testu oraz bieżącego powiadomienia.
-
-## 1.1.0
-
-- Dodano konfigurowalne powiadomienia mobilne.
-
-## 1.0.0
-
-- Pierwsze publiczne wydanie.
+- Dodano historię i statystyki cen z 7, 30 i 90 dni.
+- Dodano status publikacji, przyciski akcji, diagnostykę, Repairs, event aktualizacji i sensory binarne trendu.
+- Rozbudowano konfigurację powiadomień i obsługę telefonów.

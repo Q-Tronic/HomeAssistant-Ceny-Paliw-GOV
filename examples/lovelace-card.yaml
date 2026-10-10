@@ -1,7 +1,7 @@
 type: vertical-stack
 cards:
   - type: entities
-    title: Ceny paliw GOV.PL
+    title: Maksymalne Ceny Paliw GOV.PL
     entities:
       - entity: sensor.status_publikacji_cen_paliw
         name: Status publikacji

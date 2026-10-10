@@ -1,4 +1,4 @@
-"""Binary sensors for Ceny paliw GOV.PL."""
+"""Binary sensors for Maksymalne Ceny Paliw GOV.PL."""
 
 from __future__ import annotations
 

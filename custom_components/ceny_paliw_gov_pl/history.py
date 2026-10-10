@@ -1,4 +1,4 @@
-"""Local fuel price history for Ceny paliw GOV.PL."""
+"""Local fuel price history for Maksymalne Ceny Paliw GOV.PL."""
 
 from __future__ import annotations
 
@@ -80,7 +80,7 @@ class FuelPriceHistoryManager:
         self._record_data(self.coordinator.data)
         self.hass.async_create_task(
             self._async_save(),
-            "Ceny paliw GOV.PL zapis historii",
+            "Maksymalne Ceny Paliw GOV.PL zapis historii",
         )
 
     def _record_data(self, data: FuelPriceData) -> None:

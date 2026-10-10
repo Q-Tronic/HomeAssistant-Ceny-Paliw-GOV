@@ -1,4 +1,4 @@
-"""Diagnostics support for Ceny paliw GOV.PL."""
+"""Diagnostics support for Maksymalne Ceny Paliw GOV.PL."""
 
 from __future__ import annotations
 
@@ -12,23 +12,23 @@ from .api import PricePeriod
 from .const import (
     CONF_NOTIFICATION_CUSTOM_MESSAGE,
     CONF_NOTIFICATION_CUSTOM_TITLE,
-    CONF_NOTIFICATION_FUELS,
     CONF_NOTIFICATION_MIN_CHANGE_GROSZ,
-    CONF_NOTIFICATION_MODE,
     CONF_NOTIFICATION_ONLY_ON_CHANGE,
-    CONF_NOTIFICATION_TIME,
-    CONF_NOTIFICATIONS_ENABLED,
-    DEFAULT_NOTIFICATION_FUELS,
+    CONF_UPDATE_INTERVAL_MINUTES,
     DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ,
-    DEFAULT_NOTIFICATION_MODE,
     DEFAULT_NOTIFICATION_ONLY_ON_CHANGE,
-    DEFAULT_NOTIFICATION_TIME,
-    DEFAULT_NOTIFICATIONS_ENABLED,
+    DEFAULT_UPDATE_INTERVAL_MINUTES,
+    DEVICE_ENABLED,
+    DEVICE_FUELS,
+    DEVICE_NAME,
+    DEVICE_NOTIFICATION_TIME,
+    DEVICE_SERVICE,
     EVENT_PRICES_UPDATED,
     FUELS,
     HISTORY_PERIODS,
     VERSION,
 )
+from .phone_config import configured_devices
 
 
 def _period_as_dict(period: PricePeriod | None) -> dict[str, Any] | None:
@@ -67,14 +67,16 @@ async def async_get_config_entry_diagnostics(
     history_summaries: dict[str, Any] = {}
     for fuel in FUELS:
         history_summaries[fuel] = {
-            str(days): _summary_as_dict(
-                history.summary(fuel, days, data.today_date)
-            )
+            str(days): _summary_as_dict(history.summary(fuel, days, data.today_date))
             for days in HISTORY_PERIODS
         }
 
     return {
         "integration_version": VERSION,
+        "update_interval_minutes": entry.data.get(
+            CONF_UPDATE_INTERVAL_MINUTES,
+            DEFAULT_UPDATE_INTERVAL_MINUTES,
+        ),
         "today_date": data.today_date.isoformat(),
         "tomorrow_date": data.tomorrow_date.isoformat(),
         "today": _period_as_dict(data.today),
@@ -95,24 +97,6 @@ async def async_get_config_entry_diagnostics(
             "summaries": history_summaries,
         },
         "notifications": {
-            "enabled": bool(
-                entry.options.get(
-                    CONF_NOTIFICATIONS_ENABLED,
-                    DEFAULT_NOTIFICATIONS_ENABLED,
-                )
-            ),
-            "time": entry.options.get(
-                CONF_NOTIFICATION_TIME,
-                DEFAULT_NOTIFICATION_TIME,
-            ),
-            "mode": entry.options.get(
-                CONF_NOTIFICATION_MODE,
-                DEFAULT_NOTIFICATION_MODE,
-            ),
-            "fuels": entry.options.get(
-                CONF_NOTIFICATION_FUELS,
-                list(DEFAULT_NOTIFICATION_FUELS),
-            ),
             "only_on_change": bool(
                 entry.options.get(
                     CONF_NOTIFICATION_ONLY_ON_CHANGE,
@@ -138,12 +122,13 @@ async def async_get_config_entry_diagnostics(
             ),
             "devices": [
                 {
-                    "service": device.get("service"),
-                    "name": device.get("name"),
-                    "enabled": device.get("enabled", True),
+                    "service": device.get(DEVICE_SERVICE),
+                    "name": device.get(DEVICE_NAME),
+                    "enabled": device.get(DEVICE_ENABLED, True),
+                    "notification_time": device.get(DEVICE_NOTIFICATION_TIME),
+                    "fuels": device.get(DEVICE_FUELS),
                 }
-                for device in entry.options.get("notification_devices", [])
-                if isinstance(device, dict)
+                for device in configured_devices(entry.options)
             ],
         },
     }

@@ -1,4 +1,4 @@
-"""Config flow for Ceny paliw GOV.PL."""
+"""Config flow for Maksymalne Ceny Paliw GOV.PL."""
 
 from __future__ import annotations
 
@@ -26,47 +26,52 @@ from homeassistant.helpers.selector import (
 from .const import (
     CONF_DEVICE_ENABLED,
     CONF_DEVICE_NAME,
+    CONF_DEVICE_NOTIFICATION_FUELS,
+    CONF_DEVICE_NOTIFICATION_TIME,
     CONF_NOTIFICATION_CUSTOM_MESSAGE,
     CONF_NOTIFICATION_CUSTOM_TITLE,
     CONF_NOTIFICATION_DEVICES,
-    CONF_NOTIFICATION_FUELS,
     CONF_NOTIFICATION_MIN_CHANGE_GROSZ,
-    CONF_NOTIFICATION_MODE,
     CONF_NOTIFICATION_ONLY_ON_CHANGE,
     CONF_NOTIFICATION_SERVICES,
-    CONF_NOTIFICATION_TIME,
-    CONF_NOTIFICATIONS_ENABLED,
     CONF_SELECTED_DEVICE,
+    CONF_UPDATE_INTERVAL_MINUTES,
     DEFAULT_NOTIFICATION_CUSTOM_MESSAGE,
     DEFAULT_NOTIFICATION_CUSTOM_TITLE,
     DEFAULT_NOTIFICATION_FUELS,
     DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ,
-    DEFAULT_NOTIFICATION_MODE,
     DEFAULT_NOTIFICATION_ONLY_ON_CHANGE,
     DEFAULT_NOTIFICATION_TIME,
-    DEFAULT_NOTIFICATIONS_ENABLED,
+    DEFAULT_UPDATE_INTERVAL_MINUTES,
     DEVICE_ENABLED,
+    DEVICE_FUELS,
     DEVICE_NAME,
+    DEVICE_NOTIFICATION_TIME,
     DEVICE_SERVICE,
     DOMAIN,
     FUEL_NAMES,
     FUELS,
     NAME,
-    NOTIFICATION_MODES,
     UNIT_GROSZ,
+    UPDATE_INTERVAL_MINUTES_OPTIONS,
 )
 from .notifications import (
     async_send_current_notification,
     async_send_test_notification,
-    default_device_name,
     mobile_app_notify_targets,
+)
+from .phone_config import (
+    default_device_name,
+    normalize_fuels,
+    normalize_time_string,
+    normalized_options,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class FuelPricesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Ceny paliw GOV.PL."""
+    """Handle a config flow for Maksymalne Ceny Paliw GOV.PL."""
 
     VERSION = 1
 
@@ -79,9 +84,59 @@ class FuelPricesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="single_instance_allowed")
 
         if user_input is not None:
-            return self.async_create_entry(title=NAME, data={})
+            return self.async_create_entry(
+                title=NAME,
+                data={CONF_UPDATE_INTERVAL_MINUTES: DEFAULT_UPDATE_INTERVAL_MINUTES},
+            )
 
         return self.async_show_form(step_id="user", data_schema=probatio.Schema({}))
+
+    async def async_step_reconfigure(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Reconfigure integration-level source polling settings."""
+        entry = self._get_reconfigure_entry()
+        current_interval = int(
+            entry.data.get(
+                CONF_UPDATE_INTERVAL_MINUTES,
+                DEFAULT_UPDATE_INTERVAL_MINUTES,
+            )
+        )
+
+        if user_input is not None:
+            interval = int(
+                user_input.get(
+                    CONF_UPDATE_INTERVAL_MINUTES,
+                    DEFAULT_UPDATE_INTERVAL_MINUTES,
+                )
+            )
+            if interval not in UPDATE_INTERVAL_MINUTES_OPTIONS:
+                interval = DEFAULT_UPDATE_INTERVAL_MINUTES
+            return self.async_update_reload_and_abort(
+                entry,
+                data_updates={CONF_UPDATE_INTERVAL_MINUTES: interval},
+            )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=probatio.Schema(
+                {
+                    probatio.Required(
+                        CONF_UPDATE_INTERVAL_MINUTES,
+                        description={"suggested_value": str(current_interval)},
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                {"value": str(value), "label": f"{value} min"}
+                                for value in UPDATE_INTERVAL_MINUTES_OPTIONS
+                            ],
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            ),
+        )
 
     @staticmethod
     @callback
@@ -101,12 +156,8 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
 
     def _ensure_working_options(self) -> dict[str, Any]:
         if self._working_options is None:
-            self._working_options = dict(self.config_entry.options)
+            self._working_options = normalized_options(self.config_entry.options)
             defaults: dict[str, Any] = {
-                CONF_NOTIFICATIONS_ENABLED: DEFAULT_NOTIFICATIONS_ENABLED,
-                CONF_NOTIFICATION_TIME: DEFAULT_NOTIFICATION_TIME,
-                CONF_NOTIFICATION_MODE: DEFAULT_NOTIFICATION_MODE,
-                CONF_NOTIFICATION_FUELS: list(DEFAULT_NOTIFICATION_FUELS),
                 CONF_NOTIFICATION_ONLY_ON_CHANGE: DEFAULT_NOTIFICATION_ONLY_ON_CHANGE,
                 CONF_NOTIFICATION_MIN_CHANGE_GROSZ: DEFAULT_NOTIFICATION_MIN_CHANGE_GROSZ,
                 CONF_NOTIFICATION_CUSTOM_TITLE: DEFAULT_NOTIFICATION_CUSTOM_TITLE,
@@ -114,13 +165,6 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
             }
             for key, value in defaults.items():
                 self._working_options.setdefault(key, value)
-
-            devices = self._working_options.get(CONF_NOTIFICATION_DEVICES, [])
-            if not isinstance(devices, list):
-                devices = []
-            self._working_options[CONF_NOTIFICATION_DEVICES] = [
-                dict(item) for item in devices if isinstance(item, dict)
-            ]
         return self._working_options
 
     def _existing_devices(self) -> dict[str, dict[str, Any]]:
@@ -128,6 +172,8 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
         raw = options.get(CONF_NOTIFICATION_DEVICES, [])
         result: dict[str, dict[str, Any]] = {}
         for item in raw:
+            if not isinstance(item, dict):
+                continue
             target = item.get(DEVICE_SERVICE)
             if isinstance(target, str):
                 result[target] = dict(item)
@@ -158,12 +204,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
             name = str(device.get(DEVICE_NAME) or default_device_name(target))
             enabled = bool(device.get(DEVICE_ENABLED, True))
             suffix = "" if enabled else " (wyłączony)"
-            options.append(
-                {
-                    "value": target,
-                    "label": f"{name}{suffix}",
-                }
-            )
+            options.append({"value": target, "label": f"{name}{suffix}"})
         options.sort(key=lambda item: item["label"].casefold())
         return options
 
@@ -172,7 +213,14 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
             return None
         return self._existing_devices().get(self._selected_target)
 
-    def _update_selected_device(self, *, name: str, enabled: bool) -> None:
+    def _update_selected_device(
+        self,
+        *,
+        name: str,
+        enabled: bool,
+        notification_time: Any,
+        fuels: Any,
+    ) -> None:
         if self._selected_target is None:
             return
         devices = self._existing_devices()
@@ -180,6 +228,8 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
             DEVICE_SERVICE: self._selected_target,
             DEVICE_NAME: name,
             DEVICE_ENABLED: enabled,
+            DEVICE_NOTIFICATION_TIME: normalize_time_string(notification_time),
+            DEVICE_FUELS: normalize_fuels(fuels),
         }
         self._set_devices(list(devices.values()))
 
@@ -192,89 +242,21 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
         return self.async_show_menu(
             step_id="init",
             menu_options=[
-                "notification_settings",
+                "phones",
                 "notification_content",
                 "notification_filters",
-                "phones",
                 "diagnostics",
                 "save",
             ],
-        )
-
-    async def async_step_notification_settings(
-        self,
-        user_input: dict[str, Any] | None = None,
-    ) -> ConfigFlowResult:
-        """Configure global notification settings."""
-        options = self._ensure_working_options()
-
-        if user_input is not None:
-            options[CONF_NOTIFICATIONS_ENABLED] = bool(
-                user_input.get(
-                    CONF_NOTIFICATIONS_ENABLED,
-                    DEFAULT_NOTIFICATIONS_ENABLED,
-                )
-            )
-            options[CONF_NOTIFICATION_TIME] = str(
-                user_input.get(CONF_NOTIFICATION_TIME, DEFAULT_NOTIFICATION_TIME)
-            )
-            options[CONF_NOTIFICATION_MODE] = str(
-                user_input.get(CONF_NOTIFICATION_MODE, DEFAULT_NOTIFICATION_MODE)
-            )
-            return await self.async_step_init()
-
-        return self.async_show_form(
-            step_id="notification_settings",
-            data_schema=probatio.Schema(
-                {
-                    probatio.Optional(
-                        CONF_NOTIFICATIONS_ENABLED,
-                        description={
-                            "suggested_value": options.get(
-                                CONF_NOTIFICATIONS_ENABLED,
-                                DEFAULT_NOTIFICATIONS_ENABLED,
-                            )
-                        },
-                    ): BooleanSelector(),
-                    probatio.Optional(
-                        CONF_NOTIFICATION_TIME,
-                        description={
-                            "suggested_value": options.get(
-                                CONF_NOTIFICATION_TIME,
-                                DEFAULT_NOTIFICATION_TIME,
-                            )
-                        },
-                    ): TimeSelector(),
-                    probatio.Optional(
-                        CONF_NOTIFICATION_MODE,
-                        description={
-                            "suggested_value": options.get(
-                                CONF_NOTIFICATION_MODE,
-                                DEFAULT_NOTIFICATION_MODE,
-                            )
-                        },
-                    ): SelectSelector(
-                        SelectSelectorConfig(
-                            options=list(NOTIFICATION_MODES),
-                            mode=SelectSelectorMode.DROPDOWN,
-                            translation_key="notification_mode",
-                        )
-                    ),
-                }
-            ),
         )
 
     async def async_step_notification_content(
         self,
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
-        """Configure fuels and optional notification templates."""
+        """Configure optional global notification templates."""
         options = self._ensure_working_options()
         if user_input is not None:
-            raw_fuels = list(user_input.get(CONF_NOTIFICATION_FUELS, []))
-            options[CONF_NOTIFICATION_FUELS] = [
-                fuel for fuel in raw_fuels if fuel in FUELS
-            ] or list(FUELS)
             options[CONF_NOTIFICATION_CUSTOM_TITLE] = str(
                 user_input.get(CONF_NOTIFICATION_CUSTOM_TITLE, "") or ""
             )
@@ -283,28 +265,10 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
             )
             return await self.async_step_init()
 
-        fuel_options = [
-            {"value": fuel, "label": FUEL_NAMES[fuel]} for fuel in FUELS
-        ]
         return self.async_show_form(
             step_id="notification_content",
             data_schema=probatio.Schema(
                 {
-                    probatio.Optional(
-                        CONF_NOTIFICATION_FUELS,
-                        description={
-                            "suggested_value": options.get(
-                                CONF_NOTIFICATION_FUELS,
-                                list(DEFAULT_NOTIFICATION_FUELS),
-                            )
-                        },
-                    ): SelectSelector(
-                        SelectSelectorConfig(
-                            options=fuel_options,
-                            multiple=True,
-                            mode=SelectSelectorMode.DROPDOWN,
-                        )
-                    ),
                     probatio.Optional(
                         CONF_NOTIFICATION_CUSTOM_TITLE,
                         description={
@@ -331,7 +295,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
         self,
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
-        """Configure change based notification filters."""
+        """Configure global change based notification filters."""
         options = self._ensure_working_options()
         if user_input is not None:
             options[CONF_NOTIFICATION_ONLY_ON_CHANGE] = bool(
@@ -418,6 +382,8 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                         DEVICE_SERVICE: target,
                         DEVICE_NAME: default_device_name(target),
                         DEVICE_ENABLED: True,
+                        DEVICE_NOTIFICATION_TIME: DEFAULT_NOTIFICATION_TIME,
+                        DEVICE_FUELS: list(DEFAULT_NOTIFICATION_FUELS),
                     }
                 updated_devices.append(dict(current))
             self._set_devices(updated_devices)
@@ -491,6 +457,10 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
 
         name = str(device.get(DEVICE_NAME) or default_device_name(self._selected_target))
         enabled = bool(device.get(DEVICE_ENABLED, True))
+        notification_time = normalize_time_string(device.get(DEVICE_NOTIFICATION_TIME))
+        fuels = ", ".join(
+            FUEL_NAMES[fuel] for fuel in normalize_fuels(device.get(DEVICE_FUELS))
+        )
         return self.async_show_menu(
             step_id="phone_menu",
             menu_options=[
@@ -504,6 +474,8 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                 "device": name,
                 "target": self._selected_target,
                 "enabled": "tak" if enabled else "nie",
+                "time": notification_time[:5],
+                "fuels": fuels,
                 "status": self._phone_status or "-",
             },
         )
@@ -521,16 +493,31 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
             device.get(DEVICE_NAME) or default_device_name(self._selected_target)
         )
         default_enabled = bool(device.get(DEVICE_ENABLED, True))
+        default_time = normalize_time_string(device.get(DEVICE_NOTIFICATION_TIME))
+        default_fuels = normalize_fuels(device.get(DEVICE_FUELS))
 
         if user_input is not None:
             display_name = str(user_input.get(CONF_DEVICE_NAME) or default_name).strip()
             if not display_name:
                 display_name = default_device_name(self._selected_target)
             enabled = bool(user_input.get(CONF_DEVICE_ENABLED, True))
-            self._update_selected_device(name=display_name, enabled=enabled)
+            notification_time = user_input.get(
+                CONF_DEVICE_NOTIFICATION_TIME,
+                default_time,
+            )
+            fuels = user_input.get(CONF_DEVICE_NOTIFICATION_FUELS, default_fuels)
+            self._update_selected_device(
+                name=display_name,
+                enabled=enabled,
+                notification_time=notification_time,
+                fuels=fuels,
+            )
             self._phone_status = "Zapisano"
             return await self.async_step_phone_menu()
 
+        fuel_options = [
+            {"value": fuel, "label": FUEL_NAMES[fuel]} for fuel in FUELS
+        ]
         return self.async_show_form(
             step_id="phone_settings",
             data_schema=probatio.Schema(
@@ -543,6 +530,20 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                         CONF_DEVICE_ENABLED,
                         description={"suggested_value": default_enabled},
                     ): BooleanSelector(),
+                    probatio.Optional(
+                        CONF_DEVICE_NOTIFICATION_TIME,
+                        description={"suggested_value": default_time},
+                    ): TimeSelector(),
+                    probatio.Optional(
+                        CONF_DEVICE_NOTIFICATION_FUELS,
+                        description={"suggested_value": default_fuels},
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=fuel_options,
+                            multiple=True,
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
                 }
             ),
             description_placeholders={
@@ -599,6 +600,7 @@ class FuelPricesOptionsFlow(config_entries.OptionsFlowWithReload):
                 self._selected_target,
                 coordinator.data,
                 self._ensure_working_options(),
+                fuels_override=normalize_fuels(device.get(DEVICE_FUELS)),
             )
         except Exception:  # noqa: BLE001
             _LOGGER.exception(

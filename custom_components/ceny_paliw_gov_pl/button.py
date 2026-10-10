@@ -1,4 +1,4 @@
-"""Button entities for Ceny paliw GOV.PL."""
+"""Button entities for Maksymalne Ceny Paliw GOV.PL."""
 
 from __future__ import annotations
 
