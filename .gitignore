@@ -5,3 +5,6 @@ __pycache__/
 .vscode/
 .idea/
 .DS_Store
+
+# Lokalne prywatne ustalenia projektu; nigdy nie publikowac
+.private/
