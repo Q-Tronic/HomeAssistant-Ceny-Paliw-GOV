@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from dataclasses import replace
+from datetime import date, datetime, timedelta
 import logging
 from typing import Any
 
@@ -13,7 +14,10 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .api import FuelPriceApi, FuelPriceApiError, FuelPriceData, FuelPriceParseError
+from .api import (
+    FuelPriceApi, FuelPriceApiError, FuelPriceData, FuelPriceParseError,
+    _resolve_period,
+)
 from .const import (
     CONF_UPDATE_INTERVAL_MINUTES,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
@@ -103,6 +107,40 @@ class FuelPriceCoordinator(DataUpdateCoordinator[FuelPriceData]):
             },
         )
 
+    @staticmethod
+    def _data_for_local_date(data: FuelPriceData, today: date) -> FuelPriceData:
+        """Resolve prices by validity date, without substituting outdated data."""
+        if data.today_date == today:
+            return data
+        tomorrow = today + timedelta(days=1)
+        periods = list(data.periods)
+        return replace(
+            data,
+            today_date=today,
+            tomorrow_date=tomorrow,
+            today=_resolve_period(periods, today),
+            tomorrow=_resolve_period(periods, tomorrow),
+        )
+
+    def rollover_to_local_date(self, today: date) -> bool:
+        """Apply the new local day using cached GOV.PL validity periods.
+
+        This must not relabel yesterday's price as today's without a matching
+        validity period. A network refresh follows, but the new states are
+        visible immediately even if the network is unavailable.
+        """
+        data = self.data
+        if data is None or data.today_date == today:
+            return False
+
+        rebased = self._data_for_local_date(data, today)
+        # Do not change fetched_at or last_successful_update; rollover is not
+        # evidence that the GOV.PL endpoint has been fetched successfully.
+        self._last_data_fingerprint = self._fingerprint(rebased)
+        self.async_set_updated_data(rebased)
+        self._fire_update_event(rebased)
+        return True
+
     async def _async_update_data(self) -> FuelPriceData:
         """Fetch the latest fuel prices."""
         now = dt_util.now()
@@ -126,10 +164,20 @@ class FuelPriceCoordinator(DataUpdateCoordinator[FuelPriceData]):
             self.last_error_message = str(err)
             raise UpdateFailed(str(err)) from err
 
+        # A request started just before midnight may finish after the day
+        # changes. Never let that in-flight result replace our new-day state
+        # with yesterday's date, even if the midnight timer fired meanwhile.
+        finished_at = dt_util.now()
+        if data.today_date != finished_at.date():
+            data = replace(
+                self._data_for_local_date(data, finished_at.date()),
+                fetched_at=finished_at,
+            )
+
         ir.async_delete_issue(self.hass, DOMAIN, "parser_error")
         self.last_error_kind = None
         self.last_error_message = None
-        self.last_successful_update = now
+        self.last_successful_update = data.fetched_at
 
         fingerprint = self._fingerprint(data)
         if self._last_data_fingerprint is not None and fingerprint != self._last_data_fingerprint:

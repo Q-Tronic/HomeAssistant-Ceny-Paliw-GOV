@@ -23,6 +23,8 @@ def load_sensor_class(source_class: str, methods: set[str]):
         node for node in tree.body
         if isinstance(node, ast.ClassDef) and node.name == source_class
     )
+    # Newer versions keep validated cached prices available during failed fetches.
+    methods = set(methods) | {"available"}
     selected = [
         node for node in original.body
         if isinstance(node, ast.FunctionDef) and node.name in methods

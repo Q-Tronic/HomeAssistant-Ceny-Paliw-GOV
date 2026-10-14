@@ -213,6 +213,15 @@ class FuelPriceSensor(
         self._attr_name = description.name
 
     @property
+    def available(self) -> bool:
+        """Keep date-validated cached prices visible after transient fetch errors.
+
+        The diagnostic status sensor still reports failed requests. A missing
+        publication remains an unknown numeric value, never a stale price.
+        """
+        return self.coordinator.data is not None
+
+    @property
     def native_value(self) -> str | float | None:
         """Return numeric prices, or None until the price is published.
 
@@ -639,6 +648,11 @@ class FuelHistoryAverageSensor(
             self.days,
             self.coordinator.data.today_date,
         )
+
+    @property
+    def available(self) -> bool:
+        """Retain locally recorded history during temporary network failures."""
+        return self.coordinator.data is not None
 
     @property
     def native_value(self) -> float | None:

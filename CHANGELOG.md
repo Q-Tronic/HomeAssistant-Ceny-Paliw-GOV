@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.5
+
+- dodano automatyczne przeliczenie dat obowiązywania cen tuż po lokalnej północy, bez restartu i niezależnie od dostępności GOV.PL
+- po zmianie dnia integracja natychmiast zleca odświeżenie danych GOV.PL
+- podtrzymano poprawne ceny z pamięci podczas chwilowych błędów pobierania przy zachowaniu sygnalizacji błędu w sensorze statusu
+- zachowano dotychczasowe numeryczne encje i zabezpieczenia przed powielonymi powiadomieniami
+- dodano opcjonalny przykład dashboardu z długą kreską „—” dla nieopublikowanych cen
+
 ## 1.6.4
 
 - naprawiono błąd dodawania numerycznych sensorów cen, gdy GOV.PL nie opublikował jeszcze ceny na jutro (stan `unknown` zamiast wyjątku `ValueError`)

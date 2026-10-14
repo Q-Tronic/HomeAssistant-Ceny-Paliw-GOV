@@ -6,10 +6,12 @@ from dataclasses import dataclass
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
+from homeassistant.helpers.event import async_track_time_change
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
@@ -92,6 +94,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await notifications.async_start()
+
+    @callback
+    def _handle_local_midnight(_now) -> None:
+        """Switch date-aware entities immediately; refresh GOV.PL afterwards."""
+        coordinator.rollover_to_local_date(dt_util.now().date())
+        hass.async_create_task(
+            coordinator.async_request_refresh(),
+            "Maksymalne Ceny Paliw GOV.PL odświeżenie po północy",
+        )
+
+    entry.async_on_unload(
+        async_track_time_change(
+            hass, _handle_local_midnight, hour=0, minute=0, second=1
+        )
+    )
     return True
 
 

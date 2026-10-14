@@ -1,0 +1,18 @@
+# Opcjonalna karta: wyświetla "—" zamiast unknown/unavailable.
+# Pozostawia sensory liczbowe bez zmian i nie wymaga kart niestandardowych.
+# Jeśli Twoje entity_id są inne, podmień je poniżej.
+type: markdown
+title: Ceny paliw na jutro
+content: |
+  {% set pb95 = states('sensor.cena_pb95_jutro') %}
+  {% set pb98 = states('sensor.cena_pb98_jutro') %}
+  {% set on = states('sensor.cena_on_jutro') %}
+  **PB95:** {{ (('%.2f' | format(pb95 | float)) | replace('.', ',')) ~ ' zł/l' if is_number(pb95) else '—' }}
+
+  **PB98:** {{ (('%.2f' | format(pb98 | float)) | replace('.', ',')) ~ ' zł/l' if is_number(pb98) else '—' }}
+
+  **ON:** {{ (('%.2f' | format(on | float)) | replace('.', ',')) ~ ' zł/l' if is_number(on) else '—' }}
+
+  {% if not is_number(pb95) or not is_number(pb98) or not is_number(on) %}
+  _— oznacza brak opublikowanej ceny na jutro._
+  {% endif %}

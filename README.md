@@ -6,11 +6,12 @@
 
 Niestandardowa integracja Home Assistant autorstwa **Q-Tronic**. Pobiera maksymalne detaliczne ceny paliw publikowane przez Ministerstwo Energii na gov.pl, tworzy encje dla cen dzisiejszych i jutrzejszych, prowadzi lokalną historię oraz wysyła konfigurowalne powiadomienia na telefony z aplikacją Home Assistant Companion.
 
-Aktualna wersja: **v1.6.4**.
+Aktualna wersja: **v1.6.5**.
 
 ## Spis treści
 
 - [Najważniejsze funkcje](#najważniejsze-funkcje)
+- [Poprawki w v1.6.5](#poprawki-w-v165)
 - [Poprawki w v1.6.4](#poprawki-w-v164)
 - [Poprawki w v1.6.3](#poprawki-w-v163)
 - [Poprawki w v1.6.2](#poprawki-w-v162)
@@ -68,6 +69,20 @@ Nie opublikowano
 ```
 
 Ikony encji zmiany ceny reagują na trend. Wzrost pokazuje ikonę wzrostu, spadek ikonę spadku, brak zmiany ikonę neutralną, a brak publikacji ikonę informacyjną.
+
+## Poprawki w v1.6.5
+
+Po lokalnej północy (00:00:01) encje natychmiast przechodzą na nową datę
+obowiązywania. Odpowiednie ceny są wybierane z już pobranych publikacji,
+również z zakresów weekendowych i świątecznych. Ceny, których zakres nie
+obejmuje nowego dnia, nie są używane ponownie. Następnie integracja od razu
+podejmuje próbę odświeżenia GOV.PL; źródłowy czas pobrania nie jest fałszowany.
+
+Istniejące identyfikatory encji oraz ich typy nie ulegają zmianie. Brak ceny
+na jutro w sensorze numerycznym oznacza `unknown`, natomiast w opcjonalnym
+przykładzie dashboardu jest wyświetlany jako **„—”** z dopiskiem
+„Nie opublikowano”. Nie jest to nowy stan sensora — automatyzacje powinny
+nadal obsługiwać `unknown` / `unavailable`.
 
 ## Poprawki w v1.6.4
 
@@ -443,6 +458,7 @@ W katalogu `examples` znajdują się gotowe pliki:
 examples/dashboard-phone.yaml
 examples/dashboard-complete.yaml
 examples/dashboard-colored.yaml
+examples/dashboard-unpublished-dash.yaml
 examples/lovelace-card.yaml
 ```
 
@@ -458,6 +474,11 @@ zielony: taniej
 szary: bez zmian
 bursztynowy: brak publikacji
 ```
+
+`dashboard-unpublished-dash.yaml` zawiera opcjonalną kartę Markdown
+wyświetlającą `—` dla nieopublikowanych cen na jutro. Podmień w niej
+identyfikatory encji na używane w swojej instalacji, jeśli są inne.
+Nie zmienia ona encji ani innych kart użytkownika.
 
 Przykłady używają wyłącznie wbudowanych kart Home Assistant. Nie wymagają dodatkowej karty z HACS.
 

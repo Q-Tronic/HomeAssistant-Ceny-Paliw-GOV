@@ -60,6 +60,11 @@ class FuelMoreExpensiveBinarySensor(
         return (tomorrow - today).quantize(Decimal("0.01"))
 
     @property
+    def available(self) -> bool:
+        """Use cached date-validated prices when a GOV.PL refresh fails."""
+        return self.coordinator.data is not None
+
+    @property
     def is_on(self) -> bool | None:
         """Return unknown when one of the compared prices is missing."""
         difference = self._difference()
