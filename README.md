@@ -6,11 +6,12 @@
 
 Niestandardowa integracja Home Assistant autorstwa **Q-Tronic**. Pobiera maksymalne detaliczne ceny paliw publikowane przez Ministerstwo Energii na gov.pl, tworzy encje dla cen dzisiejszych i jutrzejszych, prowadzi lokalną historię oraz wysyła konfigurowalne powiadomienia na telefony z aplikacją Home Assistant Companion.
 
-Aktualna wersja: **v1.6.3**.
+Aktualna wersja: **v1.6.4**.
 
 ## Spis treści
 
 - [Najważniejsze funkcje](#najważniejsze-funkcje)
+- [Poprawki w v1.6.4](#poprawki-w-v164)
 - [Poprawki w v1.6.3](#poprawki-w-v163)
 - [Poprawki w v1.6.2](#poprawki-w-v162)
 - [Ustawienia telefonu dostępne na dashboardzie](#ustawienia-telefonu-dostępne-na-dashboardzie)
@@ -50,11 +51,12 @@ sensor.cena_on_jutro
 sensor.on_zmiana_ceny
 ```
 
-Jeżeli cena na jutro nie została jeszcze opublikowana, encja pokazuje:
-
-```text
-Nie opublikowano
-```
+Jeżeli cena na jutro nie została jeszcze opublikowana, numeryczny sensor ceny
+ma stan `unknown` (bez wartości), zamiast zwracać tekst i powodować błąd
+Home Assistanta. Informacja o publikacji pozostaje w atrybucie `status_danych`
+(`nie_opublikowano` albo `opublikowano`). Tak samo zachowują się średnie cen,
+gdy nie ma jeszcze historii. Tekst `Nie opublikowano` nadal może pojawiać się
+w encjach tekstowych zmiany ceny i w powiadomieniach.
 
 Encja zmiany ceny pokazuje na przykład:
 
@@ -66,6 +68,15 @@ Nie opublikowano
 ```
 
 Ikony encji zmiany ceny reagują na trend. Wzrost pokazuje ikonę wzrostu, spadek ikonę spadku, brak zmiany ikonę neutralną, a brak publikacji ikonę informacyjną.
+
+## Poprawki w v1.6.4
+
+Poprawiono błąd `ValueError` przy tworzeniu sensorów cen PB95, PB98 i ON,
+gdy brak danych na jutro. Numeryczne sensory cen i średnich historycznych
+zwracają teraz `unknown` zamiast tekstu, kiedy nie mają wartości liczbowej.
+Status braku publikacji można nadal odczytać z atrybutów; tekstowe sensory
+zmiany ceny zachowują dotychczasowe komunikaty. Nie zmieniono identyfikatorów
+encji, ustawień telefonów ani działania powiadomień.
 
 ## Poprawki w v1.6.3
 

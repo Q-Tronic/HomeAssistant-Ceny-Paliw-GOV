@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.4
+
+- naprawiono błąd dodawania numerycznych sensorów cen, gdy GOV.PL nie opublikował jeszcze ceny na jutro (stan `unknown` zamiast wyjątku `ValueError`)
+- poprawiono również zachowanie średnich 7/30/90 dni przy pustej historii, aby nie zwracały tekstu w sensorze numerycznym
+- zachowano czytelny opis braku danych w atrybutach i poprawiono status pojedynczego paliwa, gdy brak jego ceny w opublikowanym okresie
+- dodano testy regresyjne dla braku danych, częściowej publikacji, gotowych cen i pustej historii
+
 ## 1.6.3
 
 - naprawiono błędy testów, zgodność Hassfest i problem zależności DNS w CI dla HA 2025.8.0

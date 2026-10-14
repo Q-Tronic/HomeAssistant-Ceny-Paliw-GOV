@@ -44,7 +44,6 @@ from .const import (
     STALE_DATA_AFTER,
     STATUS_DOWNLOAD_ERROR,
     STATUS_NO_CHANGE,
-    STATUS_NO_HISTORY,
     STATUS_NOT_PUBLISHED,
     STATUS_PUBLISHED,
     STATUS_STALE,
@@ -214,19 +213,21 @@ class FuelPriceSensor(
         self._attr_name = description.name
 
     @property
-    def native_value(self) -> str | float:
-        """Return the sensor state."""
+    def native_value(self) -> str | float | None:
+        """Return numeric prices, or None until the price is published.
+
+        A price sensor advertises numeric precision to Home Assistant, so it
+        must never expose a human-readable status as its state.
+        """
         if self.entity_description.kind == "change":
             return self._change_state()
 
         period = self._period_for_day(self.entity_description.day)
         if period is None:
-            return STATUS_NOT_PUBLISHED
+            return None
 
         value = period.prices.get(self.entity_description.fuel)
-        if value is None:
-            return STATUS_NOT_PUBLISHED
-        return float(value)
+        return float(value) if value is not None else None
 
     @property
     def native_unit_of_measurement(self) -> str | None:
@@ -236,7 +237,7 @@ class FuelPriceSensor(
         period = self._period_for_day(self.entity_description.day)
         if period is None:
             return None
-        if self.entity_description.fuel not in period.prices:
+        if period.prices.get(self.entity_description.fuel) is None:
             return None
         return UNIT_PRICE
 
@@ -262,6 +263,9 @@ class FuelPriceSensor(
             return self._change_attributes()
 
         period = self._period_for_day(self.entity_description.day)
+        published_price = (
+            period.prices.get(self.entity_description.fuel) if period is not None else None
+        )
         expected_date = (
             self.coordinator.data.today_date
             if self.entity_description.day == "today"
@@ -272,7 +276,7 @@ class FuelPriceSensor(
             "paliwo": FUEL_NAMES[self.entity_description.fuel],
             "oczekiwana_data": expected_date.isoformat(),
             "status_danych": (
-                "opublikowano" if period is not None else "nie_opublikowano"
+                "opublikowano" if published_price is not None else "nie_opublikowano"
             ),
             "ostatnia_aktualizacja": self.coordinator.data.fetched_at.isoformat(),
         }
@@ -280,7 +284,7 @@ class FuelPriceSensor(
             attributes["zrodlo"] = NEWS_URL
             return attributes
 
-        value = period.prices.get(self.entity_description.fuel)
+        value = published_price
         attributes.update(
             {
                 "cena_numeryczna": float(value) if value is not None else None,
@@ -637,12 +641,11 @@ class FuelHistoryAverageSensor(
         )
 
     @property
-    def native_value(self) -> float | str:
+    def native_value(self) -> float | None:
+        """Return a number or None when the history window is empty."""
         summary = self._summary()
         average = summary["average"]
-        if average is None:
-            return STATUS_NO_HISTORY
-        return float(average)
+        return float(average) if average is not None else None
 
     @property
     def native_unit_of_measurement(self) -> str | None:
@@ -658,6 +661,9 @@ class FuelHistoryAverageSensor(
         return {
             "paliwo": FUEL_NAMES[self.fuel],
             "okres_dni": self.days,
+            "status_danych": (
+                "opublikowano" if summary["average"] is not None else "brak_historii"
+            ),
             "liczba_probek": summary["samples"],
             "minimum": number(summary["minimum"]),
             "maksimum": number(summary["maximum"]),
