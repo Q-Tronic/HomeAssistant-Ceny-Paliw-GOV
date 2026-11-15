@@ -50,7 +50,7 @@ jobs:
     steps:
       - name: Pobierz repozytorium
         uses: actions/checkout@v7
-      - name: HACS validation
+      - name: Walidacja katalogu społeczności (hacs/action)
         uses: hacs/action@main
         with:
           category: integration
@@ -66,6 +66,8 @@ jobs:
           - ha_version: "2025.8.0"
             python_version: "3.13"
           - ha_version: "2026.10.1"
+            python_version: "3.14"
+          - ha_version: "2026.11.1"
             python_version: "3.14"
     steps:
       - name: Pobierz repozytorium

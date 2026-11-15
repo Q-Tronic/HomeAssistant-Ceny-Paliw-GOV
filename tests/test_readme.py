@@ -36,6 +36,19 @@ class ReadmeTests(unittest.TestCase):
             text,
         )
 
+    def test_marketplace_instructions_and_legacy_hacs_are_present(self) -> None:
+        text = README.read_text(encoding="utf-8")
+        self.assertIn("## Instalacja przez Katalog społeczności (Marketplace)", text)
+        self.assertIn("## Aktualizacja przez Katalog społeczności", text)
+        self.assertIn("## Instalacja przez HACS w starszych wersjach HA", text)
+        self.assertIn("https://github.com/Q-Tronic/HomeAssistant-Ceny-Paliw-GOV", text)
+        self.assertIn("`hacs.json`", text)
+
+    def test_only_last_three_releases_have_readme_sections(self) -> None:
+        text = README.read_text(encoding="utf-8")
+        releases = re.findall(r"^## Poprawki w v(\d+\.\d+\.\d+)$", text, re.MULTILINE)
+        self.assertEqual(releases, ["1.6.6", "1.6.5", "1.6.4"])
+
     def test_internal_ci_details_are_not_documented_as_user_sections(self) -> None:
         text = README.read_text(encoding="utf-8")
         self.assertNotIn("## GitHub Actions", text)

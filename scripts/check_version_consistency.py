@@ -32,9 +32,9 @@ if const_version != manifest_version:
         f"manifest.json={manifest_version}, const.py={const_version}"
     )
 
-release_file = ROOT / f"RELEASE-v{manifest_version}.md"
+release_file = ROOT / "releases" / f"RELEASE-v{manifest_version}.md"
 if not release_file.exists():
-    fail(f"Brakuje pliku {release_file.name}")
+    fail(f"Brakuje pliku {release_file.relative_to(ROOT)}")
 
 changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 if (

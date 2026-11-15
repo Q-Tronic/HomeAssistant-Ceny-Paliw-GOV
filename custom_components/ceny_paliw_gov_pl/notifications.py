@@ -11,7 +11,8 @@ import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EVENT_SERVICE_REGISTERED
+from homeassistant.core import CALLBACK_TYPE, CoreState, Event, HomeAssistant, callback
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_change
@@ -372,6 +373,8 @@ class FuelPriceNotificationManager:
         self._state: dict[str, Any] = {}
         self._unsub_times: dict[str, CALLBACK_TYPE] = {}
         self._unsub_coordinator: CALLBACK_TYPE | None = None
+        self._unsub_ha_started: CALLBACK_TYPE | None = None
+        self._unsub_service_registered: CALLBACK_TYPE | None = None
         self._send_lock = asyncio.Lock()
         self.last_send_status = "Brak wysyłki"
         self.last_send_at: datetime | None = None
@@ -501,7 +504,17 @@ class FuelPriceNotificationManager:
         """Start notification listeners."""
         self._state = await self._store.async_load() or {}
         self._prune_removed_targets_from_state()
-        self._sync_target_repairs()
+        # Services from mobile_app may not be registered until HA has started.
+        # Register first so a late service can clear an existing warning.
+        self._unsub_service_registered = self.hass.bus.async_listen(
+            EVENT_SERVICE_REGISTERED, self._handle_service_registered
+        )
+        if self.hass.state is CoreState.running:
+            self._sync_target_repairs()
+        else:
+            self._unsub_ha_started = self.hass.bus.async_listen_once(
+                EVENT_HOMEASSISTANT_STARTED, self._handle_ha_started
+            )
         await self._async_save_state()
         self._unsub_coordinator = self.coordinator.async_add_listener(
             self._handle_coordinator_update
@@ -516,6 +529,12 @@ class FuelPriceNotificationManager:
     async def async_stop(self) -> None:
         """Stop notification listeners."""
         self._cancel_time_listeners()
+        if self._unsub_ha_started is not None:
+            self._unsub_ha_started()
+            self._unsub_ha_started = None
+        if self._unsub_service_registered is not None:
+            self._unsub_service_registered()
+            self._unsub_service_registered = None
         if self._unsub_coordinator is not None:
             self._unsub_coordinator()
             self._unsub_coordinator = None
@@ -614,8 +633,34 @@ class FuelPriceNotificationManager:
         if "waiting_services" not in self._state:
             self._state.pop("waiting_for_date", None)
 
+    @callback
+    def _handle_ha_started(self, _event: Event) -> None:
+        """Reconcile targets after all HA integrations had a chance to start."""
+        self._unsub_ha_started = None
+        self._sync_target_repairs()
+        self.hass.async_create_task(
+            self._async_save_state(),
+            "Maksymalne Ceny Paliw GOV.PL zapis stanu Repairs po starcie HA",
+        )
+
+    @callback
+    def _handle_service_registered(self, event: Event) -> None:
+        """Clear stale warnings as soon as a mobile notification service appears."""
+        if event.data.get("domain") != "notify":
+            return
+        service = event.data.get("service")
+        if not isinstance(service, str) or not service.startswith("mobile_app_"):
+            return
+        if f"notify.{service}" not in {
+            str(device.get(DEVICE_SERVICE, "")) for device in self.devices
+        }:
+            return
+        self._sync_target_repairs()
+
     def _sync_target_repairs(self) -> None:
-        """Create or clear repair warnings for renamed or missing phones."""
+        """Create or clear repair warnings only after HA finishes startup."""
+        if self.hass.state is not CoreState.running:
+            return
         current_issue_ids: set[str] = set()
         for device in self.devices:
             target = str(device.get(DEVICE_SERVICE, ""))

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.6.6
+
+- Opóźniono tworzenie ostrzeżeń Repairs o brakujących telefonach do zakończenia uruchamiania Home Assistanta.
+- Dodano ponowne sprawdzenie usług `notify.mobile_app_*` po sygnale pełnego uruchomienia HA.
+- Dodano natychmiastowe usuwanie nieaktualnego ostrzeżenia po późniejszej rejestracji usługi powiadomień telefonu.
+- W przypadku przeładowania integracji w już uruchomionym HA ostrzeżenia są weryfikowane od razu.
+- Dodano testy regresyjne kolejności startu, późniejszej rejestracji usług i odpinania nasłuchów.
+- Uzupełniono instrukcje instalacji i aktualizacji dla wbudowanego Katalogu społeczności w Home Assistant 2026.11, zachowując procedurę HACS dla starszych wersji.
+- Rozszerzono kontrolę zgodności importów o Home Assistant 2026.11.1 w CI.
+
 ## 1.6.5
 
 - dodano automatyczne przeliczenie dat obowiązywania cen tuż po lokalnej północy, bez restartu i niezależnie od dostępności GOV.PL

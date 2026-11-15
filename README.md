@@ -6,15 +6,17 @@
 
 Niestandardowa integracja Home Assistant autorstwa **Q-Tronic**. Pobiera maksymalne detaliczne ceny paliw publikowane przez Ministerstwo Energii na gov.pl, tworzy encje dla cen dzisiejszych i jutrzejszych, prowadzi lokalną historię oraz wysyła konfigurowalne powiadomienia na telefony z aplikacją Home Assistant Companion.
 
-Aktualna wersja: **v1.6.5**.
+Aktualna wersja: **v1.6.6**.
 
 ## Spis treści
 
 - [Najważniejsze funkcje](#najważniejsze-funkcje)
+- [Poprawki w v1.6.6](#poprawki-w-v166)
 - [Poprawki w v1.6.5](#poprawki-w-v165)
 - [Poprawki w v1.6.4](#poprawki-w-v164)
-- [Poprawki w v1.6.3](#poprawki-w-v163)
-- [Poprawki w v1.6.2](#poprawki-w-v162)
+- [Tryby i bezpieczeństwo powiadomień](#tryby-i-bezpieczeństwo-powiadomień)
+- [Bezpieczna diagnostyka](#bezpieczna-diagnostyka)
+- [Dodatkowe encje i zabezpieczenia](#dodatkowe-encje-i-zabezpieczenia)
 - [Ustawienia telefonu dostępne na dashboardzie](#ustawienia-telefonu-dostępne-na-dashboardzie)
 - [Indywidualny tryb, godzina i oczekiwanie na publikację](#indywidualny-tryb-godzina-i-oczekiwanie-na-publikację)
 - [Encje diagnostyczne](#encje-diagnostyczne)
@@ -28,8 +30,9 @@ Aktualna wersja: **v1.6.5**.
 - [Źródło danych](#źródło-danych)
 - [Wymagania](#wymagania)
 - [Rozwiązywanie problemów](#rozwiązywanie-problemów)
-- [Instalacja przez HACS](#instalacja-przez-hacs)
-- [Aktualizacja przez HACS](#aktualizacja-przez-hacs)
+- [Instalacja przez Katalog społeczności (Marketplace)](#instalacja-przez-katalog-społeczności-marketplace)
+- [Aktualizacja przez Katalog społeczności](#aktualizacja-przez-katalog-społeczności)
+- [Instalacja przez HACS w starszych wersjach HA](#instalacja-przez-hacs-w-starszych-wersjach-ha)
 - [Instalacja ręczna](#instalacja-ręczna)
 - [Autor](#autor)
 - [Licencja](#licencja)
@@ -70,6 +73,17 @@ Nie opublikowano
 
 Ikony encji zmiany ceny reagują na trend. Wzrost pokazuje ikonę wzrostu, spadek ikonę spadku, brak zmiany ikonę neutralną, a brak publikacji ikonę informacyjną.
 
+## Poprawki w v1.6.6
+
+Integracja sprawdza dostępność skonfigurowanych usług `notify.mobile_app_*`
+dopiero po zakończeniu startu Home Assistanta. Zapobiega to ostrzeżeniom
+Naprawy wywołanym wyłącznie kolejnością rejestracji usług podczas restartu.
+Jeśli usługa pojawi się później, ostrzeżenie jest usuwane od razu po
+zarejestrowaniu jej w HA. Gdy integracja zostanie przeładowana w już
+uruchomionym Home Assistancie, kontrola odbywa się od razu.
+Nie zmienia to ustawień telefonów, sposobów wysyłania wiadomości ani
+identyfikatorów encji.
+
 ## Poprawki w v1.6.5
 
 Po lokalnej północy (00:00:01) encje natychmiast przechodzą na nową datę
@@ -93,36 +107,7 @@ Status braku publikacji można nadal odczytać z atrybutów; tekstowe sensory
 zmiany ceny zachowują dotychczasowe komunikaty. Nie zmieniono identyfikatorów
 encji, ustawień telefonów ani działania powiadomień.
 
-## Poprawki w v1.6.3
-
-Wydanie 1.6.3 usuwa błędy automatycznej walidacji 1.6.2, dopracowuje
-migrację starych powiadomień i ochronę ustawień telefonów w przypadku
-równoległych zmian. Sensory `binary_sensor.*jutro_drozej` pokazują
-`unknown`, jeśli brakuje ceny na porównywany dzień. Usunięcie integracji
-usuwa jej zapisane pliki historii i stanu powiadomień.
-
-Wzmocniono wykrywanie nowych publikacji GOV.PL o nierozpoznanym formacie
-oraz awaryjne odtwarzanie domyślnej treści po błędach szablonu.
-Dotychczasowa ikona, identyfikatory encji i ustawienia użytkownika są zachowane.
-
-## Poprawki w v1.6.2
-
-Wersja 1.6.2 poprawia kompatybilność z Home Assistant i wzmacnia walidację publicznego wydania. Config Flow korzysta z kompatybilnego importu `voluptuous`, dzięki czemu integracja może działać również na Home Assistant sprzed przejścia Core na Probatio. Minimalna wspierana wersja Home Assistant to `2025.8.0`.
-
-Usunięto `strings.json`, ponieważ custom integrations powinny korzystać z plików w katalogu `translations`. Dodatkowo poprawiono czyszczenie ostrzeżeń Repairs po usunięciu telefonu oraz dodano ponowną kontrolę ochrony przed duplikatami już wewnątrz blokady wysyłki. Równoległa próba obsługi publikacji, która została już dostarczona przez inne zadanie, nie nadpisuje statusu ostatniej wysyłki pustym wynikiem. Ręczne sprawdzanie cen zgłasza błąd, jeżeli odświeżenie koordynatora faktycznie się nie powiedzie.
-
-Parser poprawnie wnioskuje rok na przełomie grudnia i stycznia, gdy wyjątkowa publikacja nie zawiera roku bezpośrednio w tytule. Lokalna historia daje pierwszeństwo nowszej publikacji, jeżeli zakresy dwóch publikacji się nakładają. Normalizacja konfiguracji usuwa też ewentualne zduplikowane wpisy tego samego telefonu.
-
-Dodano nową ikonę integracji w standardowym katalogu `brand`. Paczka zawiera `icon.png` 256x256 oraz `icon@2x.png` 512x512 z przezroczystością. Edytowalne źródło SVG znajduje się w `assets/icon.svg`. README otrzymało klikalny spis treści.
-
-
-## Poprawki w v1.6.1
-
-Wersja 1.6.1 poprawia ręczne akcje wykonywane w trakcie konfiguracji telefonów. Nowo dodany telefon może otrzymać `Wyślij powiadomienie teraz` jeszcze przed użyciem końcowej opcji `Zapisz i zakończ`. Również akcja `Wyślij wszystkim teraz` korzysta z aktualnej roboczej konfiguracji Options Flow.
-
-Przy okazji testy repozytorium zostały oczyszczone z przykładowych nazw i identyfikatorów przypominających dane rzeczywistych użytkowników.
-
-## Nowości w v1.6.0
+## Tryby i bezpieczeństwo powiadomień
 
 ### Tryb wysyłki osobno dla każdego telefonu
 
@@ -156,21 +141,7 @@ Integracja zapisuje osobno identyfikator dziennej wysyłki oraz identyfikator pu
 
 Integracja przekazuje powiadomienie do Home Assistant Companion w chwili wynikającej z wybranego trybu. To, czy telefon pokaże je natychmiast przy aktywnym trybie skupienia, zależy od ustawień Androida lub iOS. Integracja nie wymusza powiadomień krytycznych.
 
-## Poprawki w v1.5.4
-
-Wersja 1.5.4 upraszcza domyślny wygląd powiadomień na Androidzie i iOS. Usunięto pustą linię pomiędzy informacją o dacie a pierwszą linią z ceną paliwa. Tak samo uproszczono komunikat wysyłany ręcznie, gdy ceny na jutro nie zostały jeszcze opublikowane.
-
-## Poprawki w v1.5.3
-
-Wersja 1.5.3 naprawia błąd interfejsu konfiguracji telefonu zgłaszany przez Home Assistant jako `MISSING_VALUE` dla zmiennej `device`. Nazwa telefonu była używana w tytule kroku Options Flow, ale Home Assistant przekazuje `description_placeholders` do opisu kroku, a nie do jego tytułu. Tytuły są teraz statyczne, a nazwa telefonu pozostaje widoczna w opisie.
-
-## Poprawki w v1.5.2
-
-Wersja 1.5.2 poprawia zapisywanie telefonów w konfiguracji powiadomień. Usunięto dodatkowy listener wykonujący przeładowanie integracji równolegle z `OptionsFlowWithReload`, co mogło prowadzić do podwójnego reloadu albo wyścigu podczas zapisu.
-
-Dodano również bezpieczną obsługę wartości wyboru telefonu zarówno jako listy, jak i pojedynczego tekstu. Nieznane cele powiadomień są ignorowane.
-
-## Nowości w v1.5.1
+## Bezpieczna diagnostyka
 
 ### Prywatniejsza diagnostyka
 
@@ -178,9 +149,7 @@ Dane diagnostyczne nie zawierają już własnych nazw telefonów ani identyfikat
 
 Lista brakujących celów powiadomień została zastąpiona liczbą brakujących urządzeń, dzięki czemu diagnostyka nadal pomaga w szukaniu problemów bez ujawniania identyfikatorów telefonów.
 
-Pozostałe funkcje integracji działają tak samo jak w v1.5.0.
-
-## Nowości w v1.5.0
+## Dodatkowe encje i zabezpieczenia
 
 ### Przycisk wysyłki dla każdego telefonu
 
@@ -480,7 +449,7 @@ wyświetlającą `—` dla nieopublikowanych cen na jutro. Podmień w niej
 identyfikatory encji na używane w swojej instalacji, jeśli są inne.
 Nie zmienia ona encji ani innych kart użytkownika.
 
-Przykłady używają wyłącznie wbudowanych kart Home Assistant. Nie wymagają dodatkowej karty z HACS.
+Przykłady używają wyłącznie wbudowanych kart Home Assistant. Nie wymagają instalowania żadnej dodatkowej karty z Katalogu społeczności (dawniej HACS).
 
 Po wklejeniu YAML podmień przykładowe identyfikatory telefonu na encje istniejące w Twoim Home Assistant.
 
@@ -526,7 +495,7 @@ Integracja tworzy problem w sekcji Naprawy Home Assistanta, gdy:
 
 - strona GOV.PL nie daje się poprawnie sparsować
 - pojawi się świeża publikacja z cenami, ale nowy format zakresu dat nie zostanie rozpoznany
-- skonfigurowany i włączony telefon przestanie istnieć jako `notify.mobile_app_*`
+- po zakończeniu uruchamiania HA skonfigurowany i włączony telefon nie ma dostępnej usługi `notify.mobile_app_*`. Ostrzeżenie znika po zarejestrowaniu usługi
 
 ## Obsługa publikacji weekendowych
 
@@ -542,8 +511,9 @@ https://www.gov.pl/web/energia/wiadomosci
 
 ## Wymagania
 
-- Home Assistant Core `2025.8.0` lub nowszy
-- HACS dla instalacji przez HACS
+- Home Assistant Core `2025.8.0` lub nowszy. Minimalna wersja nie została podniesiona.
+- Home Assistant `2026.11` lub nowszy: wbudowany **Katalog społeczności (Marketplace)** w Ustawieniach. Nie instaluj osobno HACS.
+- Home Assistant `2026.10` lub starszy (ale nie starszy niż `2025.8.0`): dotychczasowa instalacja przez HACS lub ręczna.
 - aplikacja Home Assistant Companion na telefonie, jeśli mają być używane powiadomienia mobilne
 - dostęp Home Assistanta do strony gov.pl
 
@@ -555,27 +525,45 @@ Po aktualizacji integracji uruchom ponownie Home Assistant. Jeżeli problem nada
 
 Jeżeli po aktualizacji interfejs nadal pokazuje stare tłumaczenia lub formularze, wykonaj twarde odświeżenie przeglądarki albo zamknij i ponownie otwórz aplikację Home Assistant.
 
-Od Home Assistant `2026.3` ikona integracji jest dostarczana lokalnie z katalogu `custom_components/ceny_paliw_gov_pl/brand/`. Home Assistant powinien używać jej w interfejsie integracji. Jeżeli sam panel HACS nadal pokazuje `Icon not available`, może to wynikać z aktualnego ograniczenia frontendu HACS dotyczącego lokalnych ikon custom integrations, a nie z braku plików w tej integracji.
+Od Home Assistant `2026.3` ikona integracji jest dostarczana lokalnie z katalogu `custom_components/ceny_paliw_gov_pl/brand/`. Jeśli ikona w Katalogu społeczności nie jest widoczna, nie oznacza to automatycznie braku ikony w widoku integracji. Przy zgłoszeniu sprawdź wersję HA i podaj zrzut problematycznego widoku.
 
-## Instalacja przez HACS
+### Przejście z HACS do Katalogu społeczności
 
-1. Otwórz HACS.
-2. Wejdź w Integracje.
-3. Dodaj niestandardowe repozytorium:
+Od Home Assistant `2026.11` HACS został zastąpiony przez wbudowany **Marketplace** (w polskim interfejsie Katalog społeczności). Home Assistant migruje zainstalowane repozytoria, ich aktualizacje i niestandardowe źródła automatycznie. Nie trzeba usuwać ani ponownie instalować naszej integracji. Po migracji nie instaluj ponownie HACS.
 
-```text
-https://github.com/Q-Tronic/HomeAssistant-Ceny-Paliw-GOV
-```
+`hacs.json` w repozytorium oraz techniczna walidacja `hacs/action` pozostają celowo: są nadal wymagane lub obsługiwane przez Marketplace. Nazwy tych plików i identyfikatorów nie zmieniły się.
 
-4. Typ repozytorium: `Integration`.
-5. Zainstaluj `Maksymalne Ceny Paliw GOV.PL`.
-6. Uruchom ponownie Home Assistant.
-7. Wejdź w `Ustawienia > Urządzenia i usługi > Dodaj integrację`.
-8. Wyszukaj `Maksymalne Ceny Paliw GOV.PL` i dodaj integrację.
+## Instalacja przez Katalog społeczności (Marketplace)
 
-## Aktualizacja przez HACS
+Instrukcja dla **Home Assistant `2026.11` i nowszych**:
 
-Po opublikowaniu nowego GitHub Release HACS powinien wykryć nową wersję. Jeżeli chcesz wymusić sprawdzenie, użyj `Update information` w menu repozytorium HACS. Po pobraniu nowej wersji uruchom ponownie Home Assistant.
+1. Otwórz **Ustawienia > Katalog społeczności** (Marketplace). Jest on wbudowany w Home Assistant.
+2. Przy pierwszym użyciu przeczytaj ostrzeżenie dotyczące dodatków społeczności i zaakceptuj warunki, jeśli się z nimi zgadzasz.
+3. W prawym górnym rogu wybierz **Dodaj z linku** (`Add from link`).
+4. W polu łącza GitHub wklej:
+
+   ```text
+   https://github.com/Q-Tronic/HomeAssistant-Ceny-Paliw-GOV
+   ```
+
+5. Jeżeli system o to poprosi, połącz konto GitHub. Jest to potrzebne przy dodawaniu niestandardowego repozytorium.
+6. Zainstaluj **Maksymalne Ceny Paliw GOV.PL**. Jeśli Home Assistant poprosi o restart, wykonaj go.
+7. Przejdź do **Ustawienia > Urządzenia i usługi > Dodaj integrację**. Wyszukaj **Maksymalne Ceny Paliw GOV.PL** i skonfiguruj integrację.
+
+## Aktualizacja przez Katalog społeczności
+
+Po opublikowaniu nowego wydania GitHub Release Katalog społeczności wykrywa dostępną wersję. Informacje o aktualizacjach pojawiają się również w **Ustawienia > Aktualizacje**. Zainstaluj dostępną aktualizację i uruchom ponownie Home Assistant, gdy pojawi się taka prośba w sekcji Naprawy. Ustawienia telefonów, encje i dane historyczne pozostają zachowane.
+
+## Instalacja przez HACS w starszych wersjach HA
+
+Dla Home Assistant **`2025.8.0` do `2026.10.x`**:
+
+1. Otwórz HACS (jeżeli jest już zainstalowany).
+2. Wybierz kategorię **Integracje** i dodaj niestandardowe repozytorium `https://github.com/Q-Tronic/HomeAssistant-Ceny-Paliw-GOV` jako `Integration`.
+3. Zainstaluj **Maksymalne Ceny Paliw GOV.PL**.
+4. Uruchom ponownie Home Assistant i dodaj integrację w **Ustawienia > Urządzenia i usługi**.
+
+HACS w tych starszych wersjach służy również do aktualizacji. W menu repozytorium możesz wybrać `Update information`, aby odświeżyć informacje. Następnie zainstaluj aktualizację i wykonaj restart.
 
 ## Instalacja ręczna
 
